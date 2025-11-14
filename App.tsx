@@ -1,24 +1,39 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { Hex } from 'viem';
+import { Hex, getAddress } from 'viem';
 import { Message } from './types';
 import { useSomniaService } from './src/hooks/useSomniaService';
 import { NEXT_PUBLIC_CHAT_SCHEMA_ID } from './constants';
 import Header from './components/Header';
 import ChatBubble from './components/ChatBubble';
 import MessageInput from './components/MessageInput';
+import RoomModal from './components/RoomModal';
+import DisplayNameModal from './components/DisplayNameModal';
 
-const DEFAULT_ROOM_ID = 'general';
 const SCHEMA_ID = NEXT_PUBLIC_CHAT_SCHEMA_ID as Hex;
 
-const App: React.FC = () => {
+interface RoomInfo {
+  roomName: string;
+  schemaId: Hex;
+}
+
+function App() {
   const { isConnected, address } = useAccount();
   const somniaService = useSomniaService();
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
-  const [userNameInput, setUserNameInput] = useState('');
+  
+  // Room state
+  const [currentRoom, setCurrentRoom] = useState<RoomInfo | null>(null);
+  const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
+  
+  // Display name state
+  const [displayName, setDisplayName] = useState<string>('');
+  const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState(false);
+  
+  // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isSchemaRegistered, setIsSchemaRegistered] = useState(false);
+  
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,11 +44,44 @@ const App: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Clear user state when wallet disconnects
+  // Load display name from localStorage when wallet connects
+  useEffect(() => {
+    if (isConnected && address) {
+      const checksumAddress = getAddress(address);
+      const storageKey = `displayName_${checksumAddress}`;
+      const savedDisplayName = localStorage.getItem(storageKey);
+      
+      if (savedDisplayName) {
+        setDisplayName(savedDisplayName);
+      } else {
+        // Default to checksum address
+        setDisplayName(checksumAddress);
+      }
+      
+      // Load last room from localStorage
+      const lastRoomStr = localStorage.getItem('lastRoom');
+      if (lastRoomStr) {
+        try {
+          const lastRoom = JSON.parse(lastRoomStr);
+          setCurrentRoom({
+            roomName: lastRoom.roomName,
+            schemaId: lastRoom.schemaId as Hex,
+          });
+        } catch (e) {
+          console.error('Failed to parse last room:', e);
+        }
+      } else {
+        // Show room modal if no room is selected
+        setIsRoomModalOpen(true);
+      }
+    }
+  }, [isConnected, address]);
+
+  // Clear state when wallet disconnects
   useEffect(() => {
     if (!isConnected) {
-      setCurrentUser(null);
-      setUserNameInput('');
+      setDisplayName('');
+      setCurrentRoom(null);
       setMessages([]);
       setIsSchemaRegistered(false);
     }
@@ -41,11 +89,11 @@ const App: React.FC = () => {
 
   // Register schema when service is available
   useEffect(() => {
-    if (somniaService && !isSchemaRegistered) {
-      somniaService.registerChatSchema(SCHEMA_ID)
+    if (somniaService && currentRoom && !isSchemaRegistered) {
+      somniaService.registerChatSchema(currentRoom.schemaId)
         .then(() => {
           setIsSchemaRegistered(true);
-          console.log('Schema registration complete');
+          console.log('Schema registration complete for room:', currentRoom.roomName);
         })
         .catch((error) => {
           console.error('Schema registration failed:', error);
@@ -53,36 +101,51 @@ const App: React.FC = () => {
           setIsSchemaRegistered(true);
         });
     }
-  }, [somniaService, isSchemaRegistered]);
+  }, [somniaService, currentRoom, isSchemaRegistered]);
   
   const handleNewMessages = useCallback((newMessages: Message[]) => {
-    setMessages((prevMessages) => [...prevMessages, ...newMessages].sort((a, b) => a.timestamp - b.timestamp));
+    setMessages((prevMessages) => {
+      const allMessages = [...prevMessages, ...newMessages];
+      // Deduplicate and sort by timestamp
+      const uniqueMessages = Array.from(
+        new Map(allMessages.map(msg => [msg.id, msg])).values()
+      ).sort((a, b) => a.timestamp - b.timestamp);
+      return uniqueMessages;
+    });
   }, []);
 
+  // Subscribe to messages when room and display name are set
   useEffect(() => {
-    if (currentUser && somniaService && address && isSchemaRegistered) {
-      // Clear initial messages
+    if (displayName && somniaService && address && currentRoom && isSchemaRegistered) {
+      // Clear messages when switching rooms
       setMessages([]);
+      
+      const checksumAddress = getAddress(address);
       somniaService.subscribeToMessages(
         handleNewMessages,
-        SCHEMA_ID,
-        DEFAULT_ROOM_ID,
-        address,
-        currentUser
+        currentRoom.schemaId,
+        currentRoom.roomName,
+        checksumAddress,
+        displayName
       );
     }
     return () => {
       somniaService?.unsubscribe();
     };
-  }, [currentUser, somniaService, address, handleNewMessages, isSchemaRegistered]);
+  }, [displayName, somniaService, address, currentRoom, handleNewMessages, isSchemaRegistered]);
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim() || !currentUser || !somniaService) return;
+    if (!text.trim() || !displayName || !somniaService || !currentRoom) return;
 
     setIsSending(true);
 
     try {
-      await somniaService.publishMessage(text, currentUser, DEFAULT_ROOM_ID, SCHEMA_ID);
+      await somniaService.publishMessage(
+        text,
+        displayName,
+        currentRoom.roomName,
+        currentRoom.schemaId
+      );
       // The new message will appear automatically when the polling service picks it up.
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -92,10 +155,21 @@ const App: React.FC = () => {
     }
   };
 
-  const handleJoinChat = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userNameInput.trim()) {
-      setCurrentUser(userNameInput.trim());
+  const handleRoomSelect = (roomName: string, schemaId: Hex) => {
+    setCurrentRoom({ roomName, schemaId });
+    setIsSchemaRegistered(false); // Reset schema registration for new room
+    setMessages([]); // Clear messages when switching rooms
+  };
+
+  const handleDisplayNameSave = (newDisplayName: string) => {
+    if (address) {
+      const checksumAddress = getAddress(address);
+      const storageKey = `displayName_${checksumAddress}`;
+      localStorage.setItem(storageKey, newDisplayName);
+      setDisplayName(newDisplayName);
+      
+      // Clear and reload messages with new display name
+      setMessages([]);
     }
   };
 
@@ -119,37 +193,66 @@ const App: React.FC = () => {
     );
   }
 
-  // Render a join screen if wallet is connected but no user name is set
-  if (!currentUser) {
+  // Render room selection if no room is selected
+  if (!currentRoom) {
     return (
       <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
-        <Header />
+        <Header 
+          displayName={displayName}
+          onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
+        />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm">
-            <h1 className="text-2xl font-bold text-center mb-6 text-somnia-accent">Join Somnia Chat</h1>
-            <p className="text-sm text-somnia-text-secondary text-center mb-6">Enter your name to start chatting on-chain. Open another browser tab to chat with yourself as a different user!</p>
-            {!isSchemaRegistered && (
-              <p className="text-xs text-somnia-accent text-center mb-4">Registering chat schema...</p>
-            )}
-            <form onSubmit={handleJoinChat} className="flex flex-col space-y-4">
-              <input
-                type="text"
-                value={userNameInput}
-                onChange={(e) => setUserNameInput(e.target.value)}
-                placeholder="Enter your name..."
-                className="w-full bg-somnia-light border border-somnia-light text-somnia-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-somnia-accent transition duration-200"
-                required
-                aria-label="Your name"
-                disabled={!isSchemaRegistered}
-              />
-              <button
-                type="submit"
-                className="w-full bg-somnia-accent hover:bg-somnia-accent-dark text-white font-bold py-2 px-4 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-somnia-dark focus:ring-somnia-accent disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!isSchemaRegistered}
-              >
-                Join Chat
-              </button>
-            </form>
+          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
+            <h1 className="text-2xl font-bold mb-6 text-somnia-accent">Select a Room</h1>
+            <p className="text-sm text-somnia-text-secondary mb-6">
+              Join an existing room or create a new one to start chatting.
+            </p>
+            <button
+              onClick={() => setIsRoomModalOpen(true)}
+              className="w-full bg-somnia-accent hover:bg-somnia-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200"
+            >
+              Browse Rooms
+            </button>
+          </div>
+        </div>
+        
+        <RoomModal
+          isOpen={isRoomModalOpen}
+          onClose={() => setIsRoomModalOpen(false)}
+          onRoomSelect={handleRoomSelect}
+          defaultSchemaId={SCHEMA_ID}
+        />
+        
+        <DisplayNameModal
+          isOpen={isDisplayNameModalOpen}
+          onClose={() => setIsDisplayNameModalOpen(false)}
+          onSave={handleDisplayNameSave}
+          currentDisplayName={displayName}
+          defaultName={address ? getAddress(address) : ''}
+        />
+      </div>
+    );
+  }
+
+  // Show loading state while schema is being registered
+  if (!isSchemaRegistered) {
+    return (
+      <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
+        <Header 
+          currentRoom={currentRoom.roomName}
+          displayName={displayName}
+          onRoomClick={() => setIsRoomModalOpen(true)}
+          onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
+        />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
+            <div className="animate-pulse mb-4">
+              <div className="w-16 h-16 bg-somnia-accent rounded-full mx-auto mb-4"></div>
+            </div>
+            <p className="text-lg text-somnia-text mb-2">Preparing room...</p>
+            <p className="text-sm text-somnia-text-secondary">
+              Registering chat schema for room: {currentRoom.roomName}
+            </p>
           </div>
         </div>
       </div>
@@ -159,18 +262,49 @@ const App: React.FC = () => {
   // Render the chat interface
   return (
     <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
-      <Header />
+      <Header 
+        currentRoom={currentRoom.roomName}
+        displayName={displayName}
+        onRoomClick={() => setIsRoomModalOpen(true)}
+        onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
+      />
+      
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4" aria-live="polite">
-        {messages.map((msg) => (
-          <ChatBubble key={msg.id} message={msg} />
-        ))}
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center text-somnia-text-secondary">
+              <p className="text-lg mb-2">No messages yet</p>
+              <p className="text-sm">Be the first to say something in #{currentRoom.roomName}!</p>
+            </div>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <ChatBubble key={msg.id} message={msg} />
+          ))
+        )}
         <div ref={chatEndRef} />
       </main>
+      
       <div className="p-4 md:p-6 bg-somnia-dark border-t border-somnia-light">
         <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
       </div>
+
+      <RoomModal
+        isOpen={isRoomModalOpen}
+        onClose={() => setIsRoomModalOpen(false)}
+        onRoomSelect={handleRoomSelect}
+        defaultSchemaId={SCHEMA_ID}
+      />
+      
+      <DisplayNameModal
+        isOpen={isDisplayNameModalOpen}
+        onClose={() => setIsDisplayNameModalOpen(false)}
+        onSave={handleDisplayNameSave}
+        currentDisplayName={displayName}
+        defaultName={address ? getAddress(address) : ''}
+      />
     </div>
   );
-};
+}
 
 export default App;
