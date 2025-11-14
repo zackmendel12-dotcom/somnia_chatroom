@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { WagmiProvider } from './src/providers/WagmiProvider';
+import { WagmiProvider } from './providers/WagmiProvider';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

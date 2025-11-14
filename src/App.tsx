@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { Hex, getAddress } from 'viem';
-import { Message } from './types';
-import { useSomniaService } from './src/hooks/useSomniaService';
-import { NEXT_PUBLIC_CHAT_SCHEMA_ID } from './constants';
-import Header from './components/Header';
-import ChatBubble from './components/ChatBubble';
-import MessageInput from './components/MessageInput';
-import RoomModal from './components/RoomModal';
-import DisplayNameModal from './components/DisplayNameModal';
+import { Message } from '../types';
+import { useSomniaService } from './hooks/useSomniaService';
+import Header from '../components/Header';
+import ChatBubble from '../components/ChatBubble';
+import MessageInput from '../components/MessageInput';
+import RoomModal from '../components/RoomModal';
+import DisplayNameModal from '../components/DisplayNameModal';
 
-const SCHEMA_ID = NEXT_PUBLIC_CHAT_SCHEMA_ID as Hex;
+// Use environment variable directly instead of importing from constants
+const SCHEMA_ID = (import.meta.env.VITE_SOMNIA_SCHEMA_ID || '0x0000000000000000000000000000000000000000000000000000000000000000') as Hex;
 
 interface RoomInfo {
   roomName: string;
