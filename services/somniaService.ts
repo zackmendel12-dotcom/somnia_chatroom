@@ -79,7 +79,7 @@ class SomniaService {
 
         console.log('Schema not registered. Registering...');
         const txHash = await this.sdk.streams.registerDataSchemas(
-            [{ id: 'chat_app', schema: CHAT_SCHEMA, parentSchemaId: zeroBytes32 }],
+            [{ id: this.schemaId, schema: CHAT_SCHEMA, parentSchemaId: zeroBytes32 as Hex }],
             true // ignore if already registered
         );
 
