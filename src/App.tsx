@@ -3,14 +3,12 @@ import { useAccount } from 'wagmi';
 import { Hex, getAddress } from 'viem';
 import { Message } from '../types';
 import { useSomniaService } from './hooks/useSomniaService';
+import { SCHEMA_ID } from '../constants';
 import Header from '../components/Header';
 import ChatBubble from '../components/ChatBubble';
 import MessageInput from '../components/MessageInput';
 import RoomModal from '../components/RoomModal';
 import DisplayNameModal from '../components/DisplayNameModal';
-
-// Use environment variable directly instead of importing from constants
-const SCHEMA_ID = (import.meta.env.VITE_SOMNIA_SCHEMA_ID || '0x0000000000000000000000000000000000000000000000000000000000000000') as Hex;
 
 interface RoomInfo {
   roomName: string;
@@ -90,7 +88,7 @@ function App() {
   // Register schema when service is available
   useEffect(() => {
     if (somniaService && currentRoom && !isSchemaRegistered) {
-      somniaService.registerChatSchema(currentRoom.schemaId)
+      somniaService.registerChatSchema(currentRoom.schemaId, currentRoom.roomName, currentRoom.roomName)
         .then(() => {
           setIsSchemaRegistered(true);
           console.log('Schema registration complete for room:', currentRoom.roomName);
@@ -125,8 +123,7 @@ function App() {
         handleNewMessages,
         currentRoom.schemaId,
         currentRoom.roomName,
-        checksumAddress,
-        displayName
+        checksumAddress
       );
     }
     return () => {
@@ -135,14 +132,16 @@ function App() {
   }, [displayName, somniaService, address, currentRoom, handleNewMessages, isSchemaRegistered]);
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim() || !displayName || !somniaService || !currentRoom) return;
+    if (!text.trim() || !displayName || !somniaService || !currentRoom || !address) return;
 
     setIsSending(true);
 
     try {
+      const checksumAddress = getAddress(address);
       await somniaService.publishMessage(
         text,
         displayName,
+        checksumAddress,
         currentRoom.roomName,
         currentRoom.schemaId
       );
@@ -220,7 +219,7 @@ function App() {
           isOpen={isRoomModalOpen}
           onClose={() => setIsRoomModalOpen(false)}
           onRoomSelect={handleRoomSelect}
-          defaultSchemaId={SCHEMA_ID}
+          defaultSchemaId={SCHEMA_ID as Hex}
         />
         
         <DisplayNameModal
@@ -293,7 +292,7 @@ function App() {
         isOpen={isRoomModalOpen}
         onClose={() => setIsRoomModalOpen(false)}
         onRoomSelect={handleRoomSelect}
-        defaultSchemaId={SCHEMA_ID}
+        defaultSchemaId={SCHEMA_ID as Hex}
       />
       
       <DisplayNameModal

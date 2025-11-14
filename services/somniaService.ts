@@ -1,153 +1,64 @@
-import {
-  Address,
-  createPublicClient,
-  createWalletClient,
-  defineChain,
-  Hex,
-  http,
-  keccak256,
-  PublicClient,
-  toHex,
-  WalletClient,
-} from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { SDK, SchemaEncoder, zeroBytes32 } from '@somnia-chain/streams';
-
-import {
-  RPC_URL,
-  CHAT_SCHEMA,
-} from '../constants';
+import { Hex } from 'viem';
+import { API_BASE_URL } from '../constants';
 import { Message } from '../types';
-
-// Define Somnia Testnet Chain
-const somniaTestnet = defineChain({
-  id: 50312,
-  name: 'Somnia Testnet',
-  nativeCurrency: { name: 'STT', symbol: 'STT', decimals: 18 },
-  rpcUrls: {
-    default: { http: [RPC_URL] },
-    public: { http: [RPC_URL] },
-  },
-});
 
 type MessageCallback = (messages: Message[]) => void;
 
-export interface SomniaServiceConfig {
-  walletClient: WalletClient;
-  publicClient?: PublicClient;
-  rpcUrl?: string;
-}
-
 export class SomniaService {
-  private sdk: SDK;
-  private publicClient: PublicClient;
-  private walletClient: WalletClient;
-  private encoder = new SchemaEncoder(CHAT_SCHEMA);
+  private baseUrl: string;
   private pollingInterval: number | null = null;
   private seenMessages: Set<string> = new Set();
 
-  constructor(config: SomniaServiceConfig) {
-    this.walletClient = config.walletClient;
-    
-    const defaultPublicClient = createPublicClient({
-      chain: somniaTestnet,
-      transport: http(config.rpcUrl || RPC_URL),
-    });
-    
-    this.publicClient = (config.publicClient || defaultPublicClient) as PublicClient;
-
-    this.sdk = new SDK({
-      public: this.publicClient,
-      wallet: this.walletClient,
-    });
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl;
   }
 
   /**
-   * Register a chat schema on-chain
+   * Register a chat schema on-chain via the backend
    * @param schemaId - The schema ID to register
-   * @param schema - The schema definition string
+   * @param roomName - The room name
+   * @param roomId - The room ID
    * @returns The transaction hash if registration was performed, null if already registered
    */
   public async registerChatSchema(
     schemaId: Hex,
-    schema: string = CHAT_SCHEMA
+    roomName: string,
+    roomId: string
   ): Promise<Hex | null> {
-    const isRegistered = await this.sdk.streams.isDataSchemaRegistered(schemaId);
-    if (isRegistered) {
-      console.log('Schema is already registered.');
-      return null;
-    }
-
-    console.log('Schema not registered. Registering...');
-    const txHash = await this.sdk.streams.registerDataSchemas(
-      [{ id: schemaId, schema, parentSchemaId: zeroBytes32 as Hex }],
-      true
-    );
-
-    if (txHash) {
-      await this.publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
-      console.log('Schema registered successfully.');
-      return txHash as Hex;
-    }
-
-    return null;
-  }
-
-  /**
-   * Get all messages for a specific room
-   * @param schemaId - The schema ID to query
-   * @param roomId - The room ID to filter by
-   * @param publisherAddress - The address of the message publisher
-   * @param currentUser - The current user's name for determining message sender type
-   * @returns Array of messages sorted by timestamp
-   */
-  public async getRoomMessages(
-    schemaId: Hex,
-    roomId: string,
-    publisherAddress: Address,
-    currentUser?: string
-  ): Promise<Message[]> {
-    const allData = await this.sdk.streams.getAllPublisherDataForSchema(schemaId, publisherAddress);
-
-    if (!Array.isArray(allData)) {
-      return [];
-    }
-
-    const messages: Message[] = [];
-    const val = (field: any) => field?.value?.value ?? field?.value ?? '';
-
-    for (const row of (allData as any[][])) {
-      if (!Array.isArray(row) || row.length < 5) continue;
-      
-      const timestamp = Number(val(row[0]));
-      const messageRoomId = String(val(row[1]));
-      const content = String(val(row[2]));
-      const senderName = String(val(row[3]));
-      const senderAddress = String(val(row[4]));
-
-      // Filter by room ID
-      if (messageRoomId !== roomId) continue;
-
-      const messageId = `${timestamp}-${senderName}-${content}`;
-
-      messages.push({
-        id: messageId,
-        timestamp,
-        roomId: messageRoomId,
-        text: content,
-        senderName,
-        senderAddress,
-        sender: currentUser && senderName === currentUser ? 'self' : 'other',
+    try {
+      const response = await fetch(`${this.baseUrl}/api/streams/register-schema`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ roomName, roomId, schemaId }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.alreadyRegistered) {
+        console.log('Schema is already registered.');
+        return null;
+      }
+
+      console.log('Schema registered successfully.');
+      return data.txHash as Hex | null;
+    } catch (error) {
+      console.error('Failed to register schema:', error);
+      throw error;
     }
-    
-    return messages.sort((a, b) => a.timestamp - b.timestamp);
   }
 
   /**
-   * Publish a message to a room
+   * Publish a message to a room via the backend
    * @param text - The message text
    * @param senderName - The sender's display name
+   * @param senderAddress - The sender's wallet address
    * @param roomId - The room ID
    * @param schemaId - The schema ID to use
    * @returns The transaction hash
@@ -155,34 +66,30 @@ export class SomniaService {
   public async publishMessage(
     text: string,
     senderName: string,
+    senderAddress: string,
     roomId: string,
     schemaId: Hex
   ): Promise<Hex> {
-    const now = Date.now();
+    try {
+      const response = await fetch(`${this.baseUrl}/api/streams/publish-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, senderName, senderAddress, roomId, schemaId }),
+      });
 
-    if (!this.walletClient.account) {
-      throw new Error('Wallet client account is not available');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.txHash as Hex;
+    } catch (error) {
+      console.error('Failed to publish message:', error);
+      throw error;
     }
-
-    const payload: Hex = this.encoder.encodeData([
-      { name: 'timestamp', value: now.toString(), type: 'uint64' },
-      { name: 'roomId', value: toHex(roomId, { size: 32 }), type: 'bytes32' },
-      { name: 'content', value: text, type: 'string' },
-      { name: 'senderName', value: senderName, type: 'string' },
-      { name: 'sender', value: this.walletClient.account.address, type: 'address' },
-    ]);
-
-    const uniqueString = `${roomId}-${senderName}-${now}`;
-    const dataId = keccak256(toHex(uniqueString));
-
-    const tx = await this.sdk.streams.set([{ id: dataId, schemaId, data: payload }]);
-
-    if (!tx) {
-      throw new Error('Failed to publish message.');
-    }
-
-    await this.publicClient.waitForTransactionReceipt({ hash: tx as Hex });
-    return tx as Hex;
   }
 
   /**
@@ -190,16 +97,14 @@ export class SomniaService {
    * @param callback - Function to call when new messages arrive
    * @param schemaId - The schema ID to monitor
    * @param roomId - The room ID to filter by
-   * @param publisherAddress - The address of the message publisher
-   * @param currentUser - The current user's name
+   * @param currentUserAddress - The current user's wallet address for sender attribution
    * @param pollIntervalMs - Polling interval in milliseconds (default: 5000)
    */
   public subscribeToMessages(
     callback: MessageCallback,
     schemaId: Hex,
     roomId: string,
-    publisherAddress: Address,
-    currentUser: string,
+    currentUserAddress: string,
     pollIntervalMs: number = 5000
   ): void {
     if (this.pollingInterval) {
@@ -209,45 +114,40 @@ export class SomniaService {
 
     const poll = async () => {
       try {
-        const allData = await this.sdk.streams.getAllPublisherDataForSchema(schemaId, publisherAddress);
+        const response = await fetch(
+          `${this.baseUrl}/api/streams/messages/${encodeURIComponent(roomId)}?schemaId=${schemaId}`
+        );
 
-        if (!Array.isArray(allData)) {
+        if (!response.ok) {
+          console.error(`Failed to fetch messages: ${response.status}`);
+          return;
+        }
+
+        const messages: Message[] = await response.json();
+
+        if (!Array.isArray(messages)) {
           return;
         }
 
         const newMessages: Message[] = [];
-        const val = (field: any) => field?.value?.value ?? field?.value ?? '';
 
-        for (const row of (allData as any[][])) {
-          if (!Array.isArray(row) || row.length < 5) continue;
-          
-          const timestamp = Number(val(row[0]));
-          const messageRoomId = String(val(row[1]));
-          const content = String(val(row[2]));
-          const senderName = String(val(row[3]));
-          const senderAddress = String(val(row[4]));
-
-          // Filter by room ID
-          if (messageRoomId !== roomId) continue;
-
-          const messageId = `${timestamp}-${senderName}-${content}`;
-
-          if (this.seenMessages.has(messageId)) {
+        for (const message of messages) {
+          if (this.seenMessages.has(message.id)) {
             continue;
           }
-          this.seenMessages.add(messageId);
+          this.seenMessages.add(message.id);
+
+          // Set sender type based on address comparison
+          const sender = message.senderAddress.toLowerCase() === currentUserAddress.toLowerCase() 
+            ? 'self' 
+            : 'other';
 
           newMessages.push({
-            id: messageId,
-            timestamp,
-            roomId: messageRoomId,
-            text: content,
-            senderName,
-            senderAddress,
-            sender: senderName === currentUser ? 'self' : 'other',
+            ...message,
+            sender,
           });
         }
-        
+
         if (newMessages.length > 0) {
           callback(newMessages);
         }
@@ -255,9 +155,9 @@ export class SomniaService {
         console.error('Failed to fetch messages:', error);
       }
     };
-    
+
     // Initial poll with a small delay to allow UI to settle
-    setTimeout(poll, 1000); 
+    setTimeout(poll, 1000);
     this.pollingInterval = window.setInterval(poll, pollIntervalMs);
   }
 
@@ -270,24 +170,4 @@ export class SomniaService {
       this.pollingInterval = null;
     }
   }
-}
-
-// Factory function to create a service instance with a private key (for server-side use)
-export function createServiceWithPrivateKey(privateKey: string, rpcUrl?: string): SomniaService {
-  const account = privateKeyToAccount(privateKey.startsWith('0x') ? privateKey as Hex : `0x${privateKey}` as Hex);
-  const walletClient = createWalletClient({
-    account,
-    chain: somniaTestnet,
-    transport: http(rpcUrl || RPC_URL),
-  });
-  
-  return new SomniaService({ walletClient, rpcUrl });
-}
-
-// Factory function to create a service instance with a wallet client (for client-side use with wagmi)
-export function createServiceWithWalletClient(
-  walletClient: WalletClient,
-  publicClient?: PublicClient
-): SomniaService {
-  return new SomniaService({ walletClient, publicClient });
 }
