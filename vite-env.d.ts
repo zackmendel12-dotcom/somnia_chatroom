@@ -5,7 +5,7 @@ interface ImportMetaEnv {
   readonly VITE_SOMNIA_CHAIN_ID: string;
   readonly VITE_SOMNIA_SCHEMA_ID: string;
   readonly VITE_CHAT_SCHEMA: string;
-  readonly VITE_PRIVATE_KEY: string;
+  readonly VITE_PRIVATE_KEY?: string;
   readonly VITE_RAINBOWKIT_PROJECT_ID: string;
   readonly GEMINI_API_KEY: string;
   readonly SOMNIA_API_BASE_URL: string;
