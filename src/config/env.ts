@@ -4,7 +4,7 @@ interface EnvConfig {
     chainId: number;
     schemaId: string;
     chatSchema: string;
-    privateKey: string;
+    privateKey?: string;
   };
   rainbowKit: {
     projectId: string;
@@ -44,7 +44,7 @@ export function loadConfig(): EnvConfig {
       chainId: parseInt(getRequiredEnvVar('VITE_SOMNIA_CHAIN_ID', import.meta.env.VITE_SOMNIA_CHAIN_ID), 10),
       schemaId: getRequiredEnvVar('VITE_SOMNIA_SCHEMA_ID', import.meta.env.VITE_SOMNIA_SCHEMA_ID),
       chatSchema: getRequiredEnvVar('VITE_CHAT_SCHEMA', import.meta.env.VITE_CHAT_SCHEMA),
-      privateKey: getRequiredEnvVar('VITE_PRIVATE_KEY', import.meta.env.VITE_PRIVATE_KEY),
+      privateKey: import.meta.env.VITE_PRIVATE_KEY,
     },
     rainbowKit: {
       projectId: getRequiredEnvVar('VITE_RAINBOWKIT_PROJECT_ID', import.meta.env.VITE_RAINBOWKIT_PROJECT_ID),
