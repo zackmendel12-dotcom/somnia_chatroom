@@ -10,9 +10,8 @@ This document describes the environment configuration setup for the Somnia On-Ch
    ```
 
 2. Edit `.env` and fill in your actual values for:
-   - `VITE_PRIVATE_KEY` - Your wallet private key (without 0x prefix)
+   - `PRIVATE_KEY` - Server-side private key for blockchain operations (without 0x prefix)
    - `VITE_RAINBOWKIT_PROJECT_ID` - Your RainbowKit project ID from https://cloud.walletconnect.com
-   - `GEMINI_API_KEY` - Your Gemini API key (if using AI features)
 
 3. Install dependencies:
    ```bash
@@ -33,15 +32,14 @@ These variables are exposed to the frontend application:
 - `VITE_SOMNIA_CHAIN_ID` - Somnia chain ID (e.g., 50312 for testnet)
 - `VITE_SOMNIA_SCHEMA_ID` - Schema ID for Somnia Streams
 - `VITE_CHAT_SCHEMA` - Chat schema definition
-- `VITE_PRIVATE_KEY` - Wallet private key
 - `VITE_RAINBOWKIT_PROJECT_ID` - RainbowKit project ID
+- `VITE_API_BASE_URL` - Base URL for backend API (default: http://localhost:4000)
 
 ### Server-Side Variables
 These variables are only available to the backend:
 
-- `SOMNIA_API_BASE_URL` - Base URL for backend API
-- `SERVER_PORT` - Port for Express server
-- `GEMINI_API_KEY` - Gemini AI API key
+- `PRIVATE_KEY` - Private key used by the backend server to sign transactions
+- `SERVER_PORT` - Port for Express server (default: 4000)
 
 ## Configuration Helpers
 

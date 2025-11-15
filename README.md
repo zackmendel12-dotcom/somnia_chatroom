@@ -28,8 +28,10 @@ A decentralized chat application built on the Somnia blockchain network. Connect
 2. Update `.env` with your configuration:
    - `VITE_SOMNIA_RPC_URL`: Somnia testnet RPC URL
    - `VITE_SOMNIA_CHAIN_ID`: Somnia chain ID (typically 50312 for testnet)
-   - `VITE_NEXT_PUBLIC_CHAT_SCHEMA_ID`: Default chat schema ID (32-byte hex)
+   - `VITE_SOMNIA_SCHEMA_ID`: Default chat schema ID (32-byte hex)
+   - `VITE_CHAT_SCHEMA`: Chat schema definition
    - `VITE_RAINBOWKIT_PROJECT_ID`: Your WalletConnect project ID from [WalletConnect Cloud](https://cloud.walletconnect.com/)
+   - `PRIVATE_KEY`: Server-side private key for blockchain operations
    - `SERVER_PORT`: Backend server port (default: 4000)
 
 For detailed environment setup, see [ENV_SETUP.md](./ENV_SETUP.md)
