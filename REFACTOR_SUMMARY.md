@@ -93,8 +93,8 @@ All 11 tests passing ✓
 ### 6. Environment & Configuration
 
 - Removed `PRIVATE_KEY` from `constants.ts` (no longer imported in client code)
-- Made `VITE_PRIVATE_KEY` optional in environment definitions
-- Private key now only used server-side via factory function
+- Private key now only used server-side via `PRIVATE_KEY` environment variable
+- All blockchain signing operations are handled by the backend server
 
 ### 7. Documentation
 
