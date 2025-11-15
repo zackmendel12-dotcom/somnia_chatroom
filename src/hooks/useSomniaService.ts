@@ -1,18 +1,10 @@
 import { useMemo } from 'react';
-import { useWalletClient, usePublicClient } from 'wagmi';
-import { SomniaService, createServiceWithWalletClient } from '../../services/somniaService';
+import { SomniaService } from '../../services/somniaService';
 
-export function useSomniaService(): SomniaService | null {
-  const { data: walletClient } = useWalletClient();
-  const publicClient = usePublicClient();
-
+export function useSomniaService(): SomniaService {
   const service = useMemo(() => {
-    if (!walletClient) {
-      return null;
-    }
-
-    return createServiceWithWalletClient(walletClient, publicClient);
-  }, [walletClient, publicClient]);
+    return new SomniaService();
+  }, []);
 
   return service;
 }
