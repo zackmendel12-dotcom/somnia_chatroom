@@ -9,6 +9,11 @@ import ChatBubble from '../components/ChatBubble';
 import MessageInput from '../components/MessageInput';
 import RoomModal from '../components/RoomModal';
 import DisplayNameModal from '../components/DisplayNameModal';
+import LayoutShell from '../components/layout/LayoutShell';
+import UtilityBar from '../components/layout/UtilityBar';
+import { ChatContainer, ScrollableContent, ComposerPanel } from '../components/layout/ChatContainer';
+import EmptyState from '../components/shared/EmptyState';
+import LoadingState from '../components/shared/LoadingState';
 
 interface RoomInfo {
   roomName: string;
@@ -175,44 +180,47 @@ function App() {
   // Render a wallet connection prompt if no wallet is connected
   if (!isConnected) {
     return (
-      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
+      <LayoutShell>
         <Header />
+        <UtilityBar isConnected={false} />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold mb-6 text-accent">Welcome to Somnia Chat</h1>
-            <p className="text-sm text-text-secondary mb-6">
-              Connect your wallet to start chatting on-chain with the Somnia network.
-            </p>
-            <div className="text-sm text-text-secondary">
-              Click "Connect Wallet" in the top right corner to get started.
-            </div>
-          </div>
+          <EmptyState
+            icon={
+              <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            }
+            title="Welcome to Somnia Chat"
+            description="Connect your wallet to start chatting on-chain with the Somnia network. Click 'Connect Wallet' in the top right corner to get started."
+          />
         </div>
-      </div>
+      </LayoutShell>
     );
   }
 
   // Render room selection if no room is selected
   if (!currentRoom) {
     return (
-      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
+      <LayoutShell>
         <Header 
           displayName={displayName}
           onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
         />
+        <UtilityBar isConnected={isConnected} />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold mb-6 text-accent">Select a Room</h1>
-            <p className="text-sm text-text-secondary mb-6">
-              Join an existing room or create a new one to start chatting.
-            </p>
-            <button
-              onClick={() => setIsRoomModalOpen(true)}
-              className="w-full bg-accent hover:bg-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200"
-            >
-              Browse Rooms
-            </button>
-          </div>
+          <EmptyState
+            icon={
+              <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            }
+            title="Select a Room"
+            description="Join an existing room or create a new one to start chatting."
+            action={{
+              label: 'Browse Rooms',
+              onClick: () => setIsRoomModalOpen(true)
+            }}
+          />
         </div>
         
         <RoomModal
@@ -229,38 +237,35 @@ function App() {
           currentDisplayName={displayName}
           defaultName={address ? getAddress(address) : ''}
         />
-      </div>
+      </LayoutShell>
     );
   }
 
   // Show loading state while schema is being registered
   if (!isSchemaRegistered) {
     return (
-      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
+      <LayoutShell>
         <Header 
           currentRoom={currentRoom.roomName}
           displayName={displayName}
           onRoomClick={() => setIsRoomModalOpen(true)}
           onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
         />
+        <UtilityBar 
+          currentRoom={currentRoom.roomName}
+          onRoomClick={() => setIsRoomModalOpen(true)}
+          isConnected={isConnected}
+        />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
-            <div className="animate-pulse mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full mx-auto mb-4"></div>
-            </div>
-            <p className="text-lg text-text mb-2">Preparing room...</p>
-            <p className="text-sm text-text-secondary">
-              Registering chat schema for room: {currentRoom.roomName}
-            </p>
-          </div>
+          <LoadingState message={`Preparing room #${currentRoom.roomName}...`} size="lg" />
         </div>
-      </div>
+      </LayoutShell>
     );
   }
 
   // Render the chat interface
   return (
-    <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
+    <LayoutShell>
       <Header 
         currentRoom={currentRoom.roomName}
         displayName={displayName}
@@ -268,25 +273,36 @@ function App() {
         onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
       />
       
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4" aria-live="polite">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-text-secondary">
-              <p className="text-lg mb-2">No messages yet</p>
-              <p className="text-sm">Be the first to say something in #{currentRoom.roomName}!</p>
-            </div>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <ChatBubble key={msg.id} message={msg} />
-          ))
-        )}
-        <div ref={chatEndRef} />
-      </main>
+      <UtilityBar 
+        currentRoom={currentRoom.roomName}
+        onRoomClick={() => setIsRoomModalOpen(true)}
+        isConnected={isConnected}
+      />
       
-      <div className="p-4 md:p-6 bg-background border-t border-surface-light">
-        <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
-      </div>
+      <ChatContainer>
+        <ScrollableContent aria-live="polite" aria-atomic="false" aria-relevant="additions">
+          {messages.length === 0 ? (
+            <EmptyState
+              icon={
+                <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              }
+              title="No messages yet"
+              description={`Be the first to say something in #${currentRoom.roomName}!`}
+            />
+          ) : (
+            messages.map((msg) => (
+              <ChatBubble key={msg.id} message={msg} />
+            ))
+          )}
+          <div ref={chatEndRef} />
+        </ScrollableContent>
+        
+        <ComposerPanel>
+          <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
+        </ComposerPanel>
+      </ChatContainer>
 
       <RoomModal
         isOpen={isRoomModalOpen}
@@ -302,7 +318,7 @@ function App() {
         currentDisplayName={displayName}
         defaultName={address ? getAddress(address) : ''}
       />
-    </div>
+    </LayoutShell>
   );
 }
 
