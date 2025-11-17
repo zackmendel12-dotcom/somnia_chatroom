@@ -165,11 +165,13 @@ curl http://localhost:4000/api/rooms/my-room
 
 ## Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite, TailwindCSS
+- **Frontend**: React 19, TypeScript, Vite, TailwindCSS, styled-components
+- **Animation**: framer-motion with reduced-motion support
 - **Blockchain**: Somnia Network, viem, @somnia-chain/streams
 - **Wallet**: RainbowKit, wagmi
 - **Backend**: Express, Node.js
 - **Storage**: localStorage (client-side), JSON file (server-side)
+- **Testing**: Vitest, Testing Library
 
 ## Troubleshooting
 

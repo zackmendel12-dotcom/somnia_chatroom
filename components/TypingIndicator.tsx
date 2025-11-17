@@ -1,25 +1,15 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import useReducedMotion from '../src/hooks/useReducedMotion';
+import { motionTheme } from '../src/config/motionTheme';
 
-const IndicatorContainer = styled.div`
+const IndicatorContainer = styled(motion.div)`
   display: flex;
   align-items: flex-end;
   gap: ${props => props.theme.spacing.sm};
   justify-content: flex-start;
   margin-top: ${props => props.theme.spacing.md};
-  
-  @media (prefers-reduced-motion: no-preference) {
-    animation: fadeIn 0.3s ease-out;
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
 `;
 
 const IndicatorContent = styled.div`
@@ -51,61 +41,81 @@ const DotsContainer = styled.div`
   min-height: 1.25rem;
 `;
 
-interface DotProps {
-  $delay: number;
-}
-
-const Dot = styled.span<DotProps>`
+const Dot = styled(motion.span)`
   width: 0.5rem;
   height: 0.5rem;
   background-color: ${props => props.theme.colors.textSecondary};
   border-radius: ${props => props.theme.radius.full};
   opacity: 0.7;
-  
-  @media (prefers-reduced-motion: no-preference) {
-    animation: bounce 1.4s ease-in-out infinite;
-    animation-delay: ${props => props.$delay}s;
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: pulse 2s ease-in-out infinite;
-    animation-delay: ${props => props.$delay}s;
-  }
-  
-  @keyframes bounce {
-    0%, 60%, 100% {
-      transform: translateY(0);
-      opacity: 0.7;
-    }
-    30% {
-      transform: translateY(-0.375rem);
-      opacity: 1;
-    }
-  }
-  
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 1;
-    }
-  }
 `;
 
 function TypingIndicator() {
+  const prefersReducedMotion = useReducedMotion();
+  
+  const bounceVariants = {
+    initial: { y: 0, opacity: 0.7 },
+    animate: { 
+      y: [0, -6, 0],
+      opacity: [0.7, 1, 0.7],
+    },
+  };
+  
+  const pulseVariants = {
+    initial: { opacity: 0.4 },
+    animate: { opacity: [0.4, 1, 0.4] },
+  };
+  
+  const dotVariants = prefersReducedMotion ? pulseVariants : bounceVariants;
+
   return (
     <IndicatorContainer
       role="status"
       aria-live="polite"
       aria-label="Someone is typing"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: motionTheme.duration.fast }}
     >
       <IndicatorContent>
         <IndicatorBubble>
           <DotsContainer>
-            <Dot $delay={0} aria-hidden="true" />
-            <Dot $delay={0.2} aria-hidden="true" />
-            <Dot $delay={0.4} aria-hidden="true" />
+            <Dot 
+              aria-hidden="true"
+              variants={dotVariants}
+              initial="initial"
+              animate="animate"
+              transition={{
+                duration: prefersReducedMotion ? 2 : 1.4,
+                repeat: Infinity,
+                ease: motionTheme.ease.inOut,
+                delay: 0,
+              }}
+            />
+            <Dot 
+              aria-hidden="true"
+              variants={dotVariants}
+              initial="initial"
+              animate="animate"
+              transition={{
+                duration: prefersReducedMotion ? 2 : 1.4,
+                repeat: Infinity,
+                ease: motionTheme.ease.inOut,
+                delay: 0.2,
+              }}
+            />
+            <Dot 
+              aria-hidden="true"
+              variants={dotVariants}
+              initial="initial"
+              animate="animate"
+              transition={{
+                duration: prefersReducedMotion ? 2 : 1.4,
+                repeat: Infinity,
+                ease: motionTheme.ease.inOut,
+                delay: 0.4,
+              }}
+            />
           </DotsContainer>
         </IndicatorBubble>
       </IndicatorContent>

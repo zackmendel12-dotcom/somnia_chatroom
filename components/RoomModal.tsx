@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Hex } from 'viem';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 import AccessibleModal from './ui/AccessibleModal';
 import CharacterCounter from './ui/CharacterCounter';
 import ValidationFeedback from './ui/ValidationFeedback';
 import SkeletonLoader from './ui/SkeletonLoader';
 import Badge from './ui/Badge';
 import { API_BASE_URL } from '../constants';
+import useReducedMotion from '../src/hooks/useReducedMotion';
+import { motionTheme } from '../src/config/motionTheme';
 
 interface Room {
   roomName: string;
@@ -275,6 +278,10 @@ const Button = styled.button`
   }
 `;
 
+const TabContent = styled(motion.div)`
+  width: 100%;
+`;
+
 const ROOM_NAME_MAX = 100;
 const ROOM_NAME_MIN = 3;
 
@@ -283,6 +290,7 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prefersReducedMotion = useReducedMotion();
   
   // Create room form state
   const [newRoomName, setNewRoomName] = useState('');
@@ -473,53 +481,73 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
         </ErrorAlert>
       )}
 
-      {activeTab === 'join' && (
-        <>
-          {loading ? (
-            <SkeletonLoader count={3} height="100px" />
-          ) : rooms.length === 0 ? (
-            <EmptyState>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <h3>No rooms available</h3>
-              <p>Be the first to create a chat room!</p>
-            </EmptyState>
-          ) : (
-            <RoomList>
-              {rooms.map((room) => (
-                <RoomCard
-                  key={room.roomName}
-                  type="button"
-                  onClick={() => handleJoinRoom(room)}
-                >
-                  <RoomCardHeader>
-                    <RoomCardTitle>{room.roomName}</RoomCardTitle>
-                    <RoomCardIcon>
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </RoomCardIcon>
-                  </RoomCardHeader>
-                  <RoomCardDetail>
-                    Schema: {room.schemaId.slice(0, 10)}...{room.schemaId.slice(-8)}
-                  </RoomCardDetail>
-                  <RoomCardMetadata>
-                    <Badge variant="default">
-                      Owner: {formatAddress(room.ownerAddress)}
-                    </Badge>
-                    <Badge variant="primary">
-                      Updated {formatDate(room.updatedAt)}
-                    </Badge>
-                  </RoomCardMetadata>
-                </RoomCard>
-              ))}
-            </RoomList>
-          )}
-        </>
-      )}
+      <AnimatePresence mode="wait">
+        {activeTab === 'join' && (
+          <TabContent
+            key="join-tab"
+            initial={prefersReducedMotion ? false : { opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: 20 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : motionTheme.duration.fast,
+              ease: motionTheme.ease.out,
+            }}
+          >
+            {loading ? (
+              <SkeletonLoader count={3} height="100px" />
+            ) : rooms.length === 0 ? (
+              <EmptyState>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <h3>No rooms available</h3>
+                <p>Be the first to create a chat room!</p>
+              </EmptyState>
+            ) : (
+              <RoomList>
+                {rooms.map((room) => (
+                  <RoomCard
+                    key={room.roomName}
+                    type="button"
+                    onClick={() => handleJoinRoom(room)}
+                  >
+                    <RoomCardHeader>
+                      <RoomCardTitle>{room.roomName}</RoomCardTitle>
+                      <RoomCardIcon>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </RoomCardIcon>
+                    </RoomCardHeader>
+                    <RoomCardDetail>
+                      Schema: {room.schemaId.slice(0, 10)}...{room.schemaId.slice(-8)}
+                    </RoomCardDetail>
+                    <RoomCardMetadata>
+                      <Badge variant="default">
+                        Owner: {formatAddress(room.ownerAddress)}
+                      </Badge>
+                      <Badge variant="primary">
+                        Updated {formatDate(room.updatedAt)}
+                      </Badge>
+                    </RoomCardMetadata>
+                  </RoomCard>
+                ))}
+              </RoomList>
+            )}
+          </TabContent>
+        )}
 
-      {activeTab === 'create' && (
+        {activeTab === 'create' && (
+          <TabContent
+            key="create-tab"
+            initial={prefersReducedMotion ? false : { opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -20 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : motionTheme.duration.fast,
+              ease: motionTheme.ease.out,
+            }}
+          >
         <Form onSubmit={handleCreateRoom}>
           <FormGroup>
             <Label htmlFor="roomName">Room Name</Label>
@@ -591,7 +619,9 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
             {loading ? 'Creating Room...' : 'Create Room'}
           </Button>
         </Form>
-      )}
+          </TabContent>
+        )}
+      </AnimatePresence>
     </AccessibleModal>
   );
 }

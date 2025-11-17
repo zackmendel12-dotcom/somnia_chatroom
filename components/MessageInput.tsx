@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
+import { motion } from 'framer-motion';
 import SendIcon from './icons/SendIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import useReducedMotion from '../src/hooks/useReducedMotion';
+import { motionTheme } from '../src/config/motionTheme';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => Promise<void>;
@@ -11,7 +14,17 @@ interface MessageInputProps {
 interface InputWrapperProps {
   $isFocused: boolean;
   $hasContent: boolean;
+  $isLoading: boolean;
 }
+
+const shimmer = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
 
 const ComposerForm = styled.form`
   display: flex;
@@ -33,6 +46,7 @@ const InputWrapper = styled.div<InputWrapperProps>`
   padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.lg};
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: ${props => props.$isFocused ? props.theme.shadows.md : props.theme.shadows.sm};
+  overflow: hidden;
   
   ${props => props.$hasContent && `
     border-color: ${props.theme.colors.accent};
@@ -45,6 +59,34 @@ const InputWrapper = styled.div<InputWrapperProps>`
   @media (prefers-contrast: more) {
     border-width: 3px;
   }
+  
+  ${props => props.$isLoading && css`
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        ${props.theme.colors.accent} 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      
+      @media (prefers-reduced-motion: no-preference) {
+        animation: ${shimmer} 1.5s ease-in-out infinite;
+      }
+      
+      @media (prefers-reduced-motion: reduce) {
+        opacity: 0.5;
+        background: ${props.theme.colors.accent};
+        animation: none;
+      }
+    }
+  `}
 `;
 
 const StyledTextarea = styled.textarea`
@@ -132,7 +174,7 @@ const IconButton = styled.button<{ $isActive?: boolean }>`
   }
 `;
 
-const SendButton = styled.button`
+const SendButton = styled(motion.button)`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,24 +185,18 @@ const SendButton = styled.button`
   border: none;
   border-radius: ${props => props.theme.radius.full};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
   box-shadow: ${props => props.theme.shadows.sm};
   
   &:hover:not(:disabled) {
     background-color: ${props => props.theme.colors.accentDark};
     box-shadow: ${props => props.theme.shadows.md};
-    transform: scale(1.05);
-  }
-  
-  &:active:not(:disabled) {
-    transform: scale(0.95);
   }
   
   &:disabled {
     background-color: ${props => props.theme.colors.surfaceLight};
     cursor: not-allowed;
     opacity: 0.5;
-    transform: none;
   }
   
   &:focus-visible {
@@ -193,6 +229,7 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
   const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -224,6 +261,7 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
       <InputWrapper
         $isFocused={isFocused}
         $hasContent={text.length > 0}
+        $isLoading={isLoading}
       >
         <StyledTextarea
           ref={textareaRef}
@@ -287,6 +325,12 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
         type="submit"
         disabled={isLoading || !text.trim()}
         aria-label={isLoading ? 'Sending message' : 'Send message'}
+        whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
+        whileHover={prefersReducedMotion ? undefined : { scale: 1.05 }}
+        transition={{
+          duration: motionTheme.duration.fast,
+          ease: motionTheme.ease.out,
+        }}
       >
         {isLoading ? <SpinnerIcon /> : <SendIcon />}
       </SendButton>

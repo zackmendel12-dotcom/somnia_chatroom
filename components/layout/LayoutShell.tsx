@@ -1,12 +1,15 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
+import useReducedMotion from '../../src/hooks/useReducedMotion';
+import { motionTheme } from '../../src/config/motionTheme';
 
 interface LayoutShellProps {
   children: React.ReactNode;
   className?: string;
 }
 
-const Shell = styled.div`
+const Shell = styled(motion.div)`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -50,8 +53,18 @@ const Content = styled.div`
 `;
 
 function LayoutShell({ children, className }: LayoutShellProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
-    <Shell className={className}>
+    <Shell 
+      className={className}
+      initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+        duration: prefersReducedMotion ? 0 : motionTheme.duration.normal,
+        ease: motionTheme.ease.out,
+      }}
+    >
       <Content>{children}</Content>
     </Shell>
   );

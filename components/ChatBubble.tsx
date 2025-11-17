@@ -1,6 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
+import { motion } from 'framer-motion';
 import { Message } from '../types';
+import useReducedMotion from '../src/hooks/useReducedMotion';
+import { motionTheme } from '../src/config/motionTheme';
 
 interface ChatBubbleProps {
   message: Message;
@@ -12,27 +15,12 @@ interface BubbleStyleProps {
   $isGrouped?: boolean;
 }
 
-const BubbleContainer = styled.div<BubbleStyleProps>`
+const BubbleContainer = styled(motion.div)<BubbleStyleProps>`
   display: flex;
   align-items: flex-end;
   gap: ${props => props.theme.spacing.sm};
   justify-content: ${props => props.$isSelf ? 'flex-end' : 'flex-start'};
   margin-top: ${props => props.$isGrouped ? props.theme.spacing.xs : props.theme.spacing.md};
-  
-  @media (prefers-reduced-motion: no-preference) {
-    animation: slideIn 0.2s ease-out;
-  }
-  
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateY(0.5rem);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 `;
 
 const BubbleContent = styled.div<BubbleStyleProps>`
@@ -103,6 +91,7 @@ const TimestampBadge = styled.time<BubbleStyleProps>`
 
 function ChatBubble({ message, isGrouped = false }: ChatBubbleProps) {
   const isSelf = message.sender === 'self';
+  const prefersReducedMotion = useReducedMotion();
   
   const time = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
@@ -117,6 +106,12 @@ function ChatBubble({ message, isGrouped = false }: ChatBubbleProps) {
       $isGrouped={isGrouped}
       role="article"
       aria-label={`Message from ${message.senderName}`}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        duration: prefersReducedMotion ? 0 : motionTheme.duration.fast,
+        ease: motionTheme.ease.out,
+      }}
     >
       <BubbleContent $isSelf={isSelf}>
         <SenderName
