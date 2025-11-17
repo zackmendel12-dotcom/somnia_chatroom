@@ -79,6 +79,20 @@
     --z-index-dropdown: 1000;
     --z-index-modal: 2000;
     --z-index-tooltip: 3000;
+    
+    /* Motion Timing Tokens */
+    --duration-instant: 0ms;
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 400ms;
+    --duration-slower: 600ms;
+    
+    /* Motion Easing Tokens */
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 [data-theme='dark'] {

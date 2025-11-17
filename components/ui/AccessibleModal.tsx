@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { BaseModalProps, ModalSizeKey } from './modal.types';
 import { MODAL_SIZES } from './modal.types';
+import useReducedMotion from '../../src/hooks/useReducedMotion';
+import { motionTheme } from '../../src/config/motionTheme';
 
 interface AccessibleModalProps extends BaseModalProps {
   children: React.ReactNode;
@@ -13,27 +16,7 @@ interface AccessibleModalProps extends BaseModalProps {
   ariaDescribedBy?: string;
 }
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-`;
-
-const slideIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-`;
-
-const Overlay = styled.div<{ $isOpen: boolean }>`
+const Overlay = styled(motion.div)`
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
@@ -44,16 +27,9 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   justify-content: center;
   padding: ${({ theme }) => theme.spacing.md};
   overflow-y: auto;
-  
-  animation: ${fadeIn} 200ms ease-out;
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    transition: opacity 100ms ease-out;
-  }
 `;
 
-const ModalContainer = styled.div<{ $size: ModalSizeKey }>`
+const ModalContainer = styled(motion.div)<{ $size: ModalSizeKey }>`
   background-color: ${({ theme }) => theme.colors.surface};
   border-radius: ${({ theme }) => theme.radius.lg};
   box-shadow: ${({ theme }) => theme.shadows.xl};
@@ -63,13 +39,6 @@ const ModalContainer = styled.div<{ $size: ModalSizeKey }>`
   display: flex;
   flex-direction: column;
   position: relative;
-  
-  animation: ${slideIn} 250ms ease-out;
-  
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    transition: all 150ms ease-out;
-  }
 
   @media (max-width: 640px) {
     max-height: 95vh;
@@ -161,6 +130,7 @@ function AccessibleModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   // Focus trap implementation
   const trapFocus = useCallback((e: KeyboardEvent) => {
@@ -254,45 +224,59 @@ function AccessibleModal({
     }
   };
 
-  if (!isOpen) return null;
-
   const titleId = ariaLabelledBy || (title ? 'modal-title' : undefined);
   
   return (
-    <Overlay
-      ref={overlayRef}
-      $isOpen={isOpen}
-      onClick={handleOverlayClick}
-      role="presentation"
-    >
-      <ModalContainer
-        ref={modalRef}
-        $size={size}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={ariaDescribedBy}
-        className={className}
-      >
-        <ModalHeader $hasTitle={!!title}>
-          {title && <ModalTitle id={titleId}>{title}</ModalTitle>}
-          {showCloseButton && (
-            <CloseButton
-              onClick={onClose}
-              aria-label="Close modal"
-              type="button"
-            >
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </CloseButton>
-          )}
-        </ModalHeader>
-        <ModalContent>
-          {children}
-        </ModalContent>
-      </ModalContainer>
-    </Overlay>
+    <AnimatePresence>
+      {isOpen && (
+        <Overlay
+          ref={overlayRef}
+          onClick={handleOverlayClick}
+          role="presentation"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{
+            duration: prefersReducedMotion ? 0 : motionTheme.duration.fast,
+          }}
+        >
+          <ModalContainer
+            ref={modalRef}
+            $size={size}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={ariaDescribedBy}
+            className={className}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -20, scale: 0.95 }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : motionTheme.duration.normal,
+              ease: motionTheme.ease.out,
+            }}
+          >
+            <ModalHeader $hasTitle={!!title}>
+              {title && <ModalTitle id={titleId}>{title}</ModalTitle>}
+              {showCloseButton && (
+                <CloseButton
+                  onClick={onClose}
+                  aria-label="Close modal"
+                  type="button"
+                >
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </CloseButton>
+              )}
+            </ModalHeader>
+            <ModalContent>
+              {children}
+            </ModalContent>
+          </ModalContainer>
+        </Overlay>
+      )}
+    </AnimatePresence>
   );
 }
 
