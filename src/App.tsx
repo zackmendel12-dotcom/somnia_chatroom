@@ -277,16 +277,19 @@ function App() {
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <ChatBubble key={msg.id} message={msg} />
-          ))
+          messages.map((msg, index) => {
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const isGrouped = prevMessage && 
+                            prevMessage.senderAddress === msg.senderAddress &&
+                            (msg.timestamp - prevMessage.timestamp) < 60000;
+            
+            return <ChatBubble key={msg.id} message={msg} isGrouped={isGrouped} />;
+          })
         )}
         <div ref={chatEndRef} />
       </main>
       
-      <div className="p-4 md:p-6 bg-background border-t border-surface-light">
-        <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
-      </div>
+      <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
 
       <RoomModal
         isOpen={isRoomModalOpen}
