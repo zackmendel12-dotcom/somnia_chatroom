@@ -44,6 +44,8 @@ const RoomButton = styled.button`
   align-items: center;
   gap: ${({ theme }) => theme.spacing.sm};
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  min-height: 44px;
+  min-width: 44px;
   background: ${({ theme }) => theme.colors.surfaceLight};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
@@ -61,9 +63,17 @@ const RoomButton = styled.button`
     border-color: ${({ theme }) => theme.colors.accent};
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, ${({ theme }) => theme.colors.accent} 30%, transparent);
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+
+  @media (prefers-contrast: more) {
+    border-width: 2px;
+    
+    &:focus-visible {
+      outline-width: 3px;
+    }
   }
 
   svg {
@@ -111,8 +121,8 @@ const ThemeToggle = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   background: ${({ theme }) => theme.colors.surfaceLight};
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.radius.md};
@@ -126,9 +136,17 @@ const ThemeToggle = styled.button`
     color: ${({ theme }) => theme.colors.accent};
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, ${({ theme }) => theme.colors.accent} 30%, transparent);
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+
+  @media (prefers-contrast: more) {
+    border-width: 2px;
+    
+    &:focus-visible {
+      outline-width: 3px;
+    }
   }
 `;
 
@@ -136,14 +154,17 @@ function UtilityBar({ currentRoom, onRoomClick, isConnected }: UtilityBarProps) 
   const { mode, toggleTheme } = useThemeMode();
 
   return (
-    <Bar>
+    <Bar role="navigation" aria-label="Utility controls">
       <LeftSection>
-        <StatusIndicator $connected={isConnected}>
+        <StatusIndicator $connected={isConnected} role="status" aria-live="polite">
           <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
         </StatusIndicator>
         {currentRoom && onRoomClick && (
-          <RoomButton onClick={onRoomClick} title="Switch room">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <RoomButton 
+            onClick={onRoomClick}
+            aria-label={`Switch from room ${currentRoom}`}
+          >
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span>#{currentRoom}</span>
@@ -152,9 +173,8 @@ function UtilityBar({ currentRoom, onRoomClick, isConnected }: UtilityBarProps) 
       </LeftSection>
       <RightSection>
         <ThemeToggle 
-          onClick={toggleTheme} 
-          title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}
-          aria-label="Toggle theme"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}
         >
           <ThemeIcon mode={mode} />
         </ThemeToggle>

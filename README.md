@@ -10,6 +10,8 @@ A decentralized chat application built on the Somnia blockchain network. Connect
 - 📝 **On-Chain Messages**: All messages are published to Somnia Streams
 - 🔄 **Real-Time Updates**: Automatic polling for new messages
 - 💾 **Persistent State**: Last room and display names saved in localStorage
+- ♿ **Accessibility**: WCAG 2.1 AA compliant with full keyboard navigation and screen reader support
+- 📱 **Responsive**: Fluid layout from 320px mobile to widescreen (1536px+)
 
 ## Prerequisites
 
@@ -160,18 +162,36 @@ curl http://localhost:4000/api/rooms/my-room
 - `npm run dev:client` - Run frontend only (port 3000)
 - `npm run dev:server` - Run backend only (port 4000)
 - `npm run build` - Build both client and server for production
-- `npm run test` - Run tests with Vitest
+- `npm run test` - Run tests with Vitest (includes accessibility tests)
+- `npm run test:watch` - Run tests in watch mode
 - `npm run typecheck` - Run TypeScript type checking
 
 ## Technology Stack
 
-- **Frontend**: React 19, TypeScript, Vite, TailwindCSS, styled-components
+- **Frontend**: React 19, TypeScript, Vite, TailwindCSS v4, styled-components
 - **Animation**: framer-motion with reduced-motion support
 - **Blockchain**: Somnia Network, viem, @somnia-chain/streams
 - **Wallet**: RainbowKit, wagmi
 - **Backend**: Express, Node.js
 - **Storage**: localStorage (client-side), JSON file (server-side)
-- **Testing**: Vitest, Testing Library
+- **Testing**: Vitest, Testing Library, jest-axe (accessibility testing)
+
+## Accessibility
+
+This application is built with **WCAG 2.1 Level AA** compliance in mind. For detailed information about accessibility features, testing workflows, and best practices, see [ACCESSIBILITY.md](./ACCESSIBILITY.md).
+
+Key accessibility features:
+- Skip-to-content link for keyboard navigation
+- Full keyboard support with visible focus indicators
+- Screen reader friendly with proper ARIA labels and live regions
+- Respects `prefers-reduced-motion` and `prefers-contrast` preferences
+- Minimum 44x44px touch targets on mobile devices
+- Automated accessibility testing with jest-axe
+
+To run accessibility tests:
+```bash
+npm test -- a11y.test
+```
 
 ## Troubleshooting
 
@@ -211,5 +231,6 @@ MIT License - see LICENSE file for details
 
 For issues and questions:
 - Check the [ENV_SETUP.md](./ENV_SETUP.md) for environment configuration
+- Review the [ACCESSIBILITY.md](./ACCESSIBILITY.md) for accessibility features and testing
 - Review the [REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md) for technical details
 - Open an issue on GitHub for bugs and feature requests
