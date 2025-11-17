@@ -121,13 +121,13 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-somnia-medium rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-surface rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-somnia-light">
-          <h2 className="text-2xl font-bold text-somnia-text">Chat Rooms</h2>
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-2xl font-bold text-text">Chat Rooms</h2>
           <button
             onClick={onClose}
-            className="text-somnia-text-secondary hover:text-somnia-text transition-colors"
+            className="text-text-secondary hover:text-text transition-colors"
             aria-label="Close modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,13 +137,13 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-somnia-light">
+        <div className="flex border-b border-border">
           <button
             onClick={() => setActiveTab('join')}
             className={`flex-1 py-3 px-4 font-medium transition-colors ${
               activeTab === 'join'
-                ? 'text-somnia-accent border-b-2 border-somnia-accent'
-                : 'text-somnia-text-secondary hover:text-somnia-text'
+                ? 'text-accent border-b-2 border-accent'
+                : 'text-text-secondary hover:text-text'
             }`}
           >
             Join Room
@@ -152,8 +152,8 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
             onClick={() => setActiveTab('create')}
             className={`flex-1 py-3 px-4 font-medium transition-colors ${
               activeTab === 'create'
-                ? 'text-somnia-accent border-b-2 border-somnia-accent'
-                : 'text-somnia-text-secondary hover:text-somnia-text'
+                ? 'text-accent border-b-2 border-accent'
+                : 'text-text-secondary hover:text-text'
             }`}
           >
             Create Room
@@ -171,9 +171,9 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
           {activeTab === 'join' && (
             <div>
               {loading ? (
-                <div className="text-center py-8 text-somnia-text-secondary">Loading rooms...</div>
+                <div className="text-center py-8 text-text-secondary">Loading rooms...</div>
               ) : rooms.length === 0 ? (
-                <div className="text-center py-8 text-somnia-text-secondary">
+                <div className="text-center py-8 text-text-secondary">
                   <p>No rooms available yet.</p>
                   <p className="mt-2">Create the first room to get started!</p>
                 </div>
@@ -183,19 +183,19 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
                     <button
                       key={room.roomName}
                       onClick={() => handleJoinRoom(room)}
-                      className="w-full text-left p-4 bg-somnia-light hover:bg-somnia-dark border border-somnia-light rounded-lg transition-colors"
+                      className="w-full text-left p-4 bg-surface-light hover:bg-background border border-border rounded-lg transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h3 className="font-medium text-somnia-text">{room.roomName}</h3>
-                          <p className="text-xs text-somnia-text-secondary mt-1">
+                          <h3 className="font-medium text-text">{room.roomName}</h3>
+                          <p className="text-xs text-text-secondary mt-1">
                             Schema: {room.schemaId.slice(0, 10)}...{room.schemaId.slice(-8)}
                           </p>
-                          <p className="text-xs text-somnia-text-secondary mt-1">
+                          <p className="text-xs text-text-secondary mt-1">
                             Updated: {new Date(room.updatedAt).toLocaleString()}
                           </p>
                         </div>
-                        <svg className="w-5 h-5 text-somnia-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -209,7 +209,7 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
           {activeTab === 'create' && (
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label htmlFor="roomName" className="block text-sm font-medium text-somnia-text mb-2">
+                <label htmlFor="roomName" className="block text-sm font-medium text-text mb-2">
                   Room Name
                 </label>
                 <input
@@ -219,13 +219,13 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder="Enter room name..."
                   maxLength={100}
-                  className="w-full bg-somnia-light border border-somnia-light text-somnia-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-somnia-accent"
+                  className="w-full bg-surface-light border border-border text-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="schemaId" className="block text-sm font-medium text-somnia-text mb-2">
+                <label htmlFor="schemaId" className="block text-sm font-medium text-text mb-2">
                   Schema ID
                 </label>
                 <input
@@ -235,10 +235,10 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
                   onChange={(e) => setNewRoomSchemaId(e.target.value)}
                   placeholder="0x..."
                   pattern="^0x[a-fA-F0-9]{64}$"
-                  className="w-full bg-somnia-light border border-somnia-light text-somnia-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-somnia-accent font-mono text-sm"
+                  className="w-full bg-surface-light border border-border text-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
                   required
                 />
-                <p className="mt-1 text-xs text-somnia-text-secondary">
+                <p className="mt-1 text-xs text-text-secondary">
                   32-byte hex string (0x followed by 64 hex characters)
                 </p>
               </div>
@@ -247,7 +247,7 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-somnia-accent hover:bg-somnia-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-somnia-medium focus:ring-somnia-accent disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-accent hover:bg-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Creating Room...' : 'Create Room'}
                 </button>
