@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { WagmiProvider } from './providers/WagmiProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
+import './styles/tailwind.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,8 +13,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <WagmiProvider>
-      <App />
-    </WagmiProvider>
+    <ThemeProvider>
+      <WagmiProvider>
+        <App />
+      </WagmiProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

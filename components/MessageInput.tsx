@@ -25,13 +25,13 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, isLoading })
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Type your message..."
-        className="flex-1 w-full bg-somnia-medium border border-somnia-light text-somnia-text rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-somnia-accent transition duration-200"
+        className="flex-1 w-full bg-surface border border-border text-text rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent transition duration-200"
         disabled={isLoading}
       />
       <button
         type="submit"
         disabled={isLoading || !text.trim()}
-        className="flex items-center justify-center w-10 h-10 bg-somnia-accent hover:bg-somnia-accent-dark text-white rounded-full transition-all duration-200 disabled:bg-somnia-light disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-somnia-dark focus:ring-somnia-accent"
+        className="flex items-center justify-center w-10 h-10 bg-accent hover:bg-accent-dark text-white rounded-full transition-all duration-200 disabled:bg-surface-light disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-accent"
       >
         {isLoading ? <SpinnerIcon /> : <SendIcon />}
       </button>

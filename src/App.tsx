@@ -175,15 +175,15 @@ function App() {
   // Render a wallet connection prompt if no wallet is connected
   if (!isConnected) {
     return (
-      <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
+      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
         <Header />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold mb-6 text-somnia-accent">Welcome to Somnia Chat</h1>
-            <p className="text-sm text-somnia-text-secondary mb-6">
+          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
+            <h1 className="text-2xl font-bold mb-6 text-accent">Welcome to Somnia Chat</h1>
+            <p className="text-sm text-text-secondary mb-6">
               Connect your wallet to start chatting on-chain with the Somnia network.
             </p>
-            <div className="text-sm text-somnia-text-secondary">
+            <div className="text-sm text-text-secondary">
               Click "Connect Wallet" in the top right corner to get started.
             </div>
           </div>
@@ -195,20 +195,20 @@ function App() {
   // Render room selection if no room is selected
   if (!currentRoom) {
     return (
-      <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
+      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
         <Header 
           displayName={displayName}
           onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
         />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold mb-6 text-somnia-accent">Select a Room</h1>
-            <p className="text-sm text-somnia-text-secondary mb-6">
+          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
+            <h1 className="text-2xl font-bold mb-6 text-accent">Select a Room</h1>
+            <p className="text-sm text-text-secondary mb-6">
               Join an existing room or create a new one to start chatting.
             </p>
             <button
               onClick={() => setIsRoomModalOpen(true)}
-              className="w-full bg-somnia-accent hover:bg-somnia-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200"
+              className="w-full bg-accent hover:bg-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200"
             >
               Browse Rooms
             </button>
@@ -236,7 +236,7 @@ function App() {
   // Show loading state while schema is being registered
   if (!isSchemaRegistered) {
     return (
-      <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
+      <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
         <Header 
           currentRoom={currentRoom.roomName}
           displayName={displayName}
@@ -244,12 +244,12 @@ function App() {
           onDisplayNameClick={() => setIsDisplayNameModalOpen(true)}
         />
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="bg-somnia-medium p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
+          <div className="bg-surface p-8 rounded-lg shadow-lg w-full max-w-sm text-center">
             <div className="animate-pulse mb-4">
-              <div className="w-16 h-16 bg-somnia-accent rounded-full mx-auto mb-4"></div>
+              <div className="w-16 h-16 bg-accent rounded-full mx-auto mb-4"></div>
             </div>
-            <p className="text-lg text-somnia-text mb-2">Preparing room...</p>
-            <p className="text-sm text-somnia-text-secondary">
+            <p className="text-lg text-text mb-2">Preparing room...</p>
+            <p className="text-sm text-text-secondary">
               Registering chat schema for room: {currentRoom.roomName}
             </p>
           </div>
@@ -260,7 +260,7 @@ function App() {
 
   // Render the chat interface
   return (
-    <div className="flex flex-col h-screen bg-somnia-dark text-somnia-text font-sans antialiased">
+    <div className="flex flex-col h-screen bg-background text-text font-sans antialiased">
       <Header 
         currentRoom={currentRoom.roomName}
         displayName={displayName}
@@ -271,7 +271,7 @@ function App() {
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4" aria-live="polite">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center text-somnia-text-secondary">
+            <div className="text-center text-text-secondary">
               <p className="text-lg mb-2">No messages yet</p>
               <p className="text-sm">Be the first to say something in #{currentRoom.roomName}!</p>
             </div>
@@ -284,7 +284,7 @@ function App() {
         <div ref={chatEndRef} />
       </main>
       
-      <div className="p-4 md:p-6 bg-somnia-dark border-t border-somnia-light">
+      <div className="p-4 md:p-6 bg-background border-t border-surface-light">
         <MessageInput onSendMessage={handleSendMessage} isLoading={isSending} />
       </div>
 
