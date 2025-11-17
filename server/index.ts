@@ -519,6 +519,9 @@ app.get('/api/streams/messages/:roomId', async (req, res) => {
 
     console.log(`Fetching messages for room ${roomId} with schema ${schemaId}...`);
 
+    // Encode roomId the same way it was encoded when publishing
+    const roomIdHex = toHex(roomId, { size: 32 });
+
     // Fetch all data for the schema from the server's wallet
     const allData = await somniaSDK.streams.getAllPublisherDataForSchema(
       schemaIdHex, 
@@ -542,8 +545,8 @@ app.get('/api/streams/messages/:roomId', async (req, res) => {
       const senderName = String(val(row[3]));
       const senderAddress = String(val(row[4]));
 
-      // Filter by room ID
-      if (messageRoomId !== roomId) continue;
+      // Filter by room ID (compare hex-encoded values)
+      if (messageRoomId !== roomIdHex) continue;
 
       const messageId = `${timestamp}-${senderName}-${content}`;
 
