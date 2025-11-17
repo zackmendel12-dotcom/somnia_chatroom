@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Hex } from 'viem';
+import styled from 'styled-components';
+import AccessibleModal from './ui/AccessibleModal';
+import CharacterCounter from './ui/CharacterCounter';
+import ValidationFeedback from './ui/ValidationFeedback';
+import SkeletonLoader from './ui/SkeletonLoader';
+import Badge from './ui/Badge';
 import { API_BASE_URL } from '../constants';
 
 interface Room {
@@ -17,6 +23,261 @@ interface RoomModalProps {
   defaultSchemaId: string;
 }
 
+const TabContainer = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.sm};
+  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+  margin: ${({ theme }) => `-${theme.spacing.lg} -${theme.spacing.lg} ${theme.spacing.lg}`};
+  padding: 0 ${({ theme }) => theme.spacing.lg};
+`;
+
+const Tab = styled.button<{ $active: boolean }>`
+  background: none;
+  border: none;
+  padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.lg}`};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme, $active }) => $active ? theme.colors.accent : theme.colors.textSecondary};
+  border-bottom: 2px solid ${({ theme, $active }) => $active ? theme.colors.accent : 'transparent'};
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color 150ms ease-in-out;
+
+  &:hover {
+    color: ${({ theme, $active }) => $active ? theme.colors.accent : theme.colors.text};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+    border-radius: ${({ theme }) => theme.radius.sm};
+  }
+`;
+
+const ErrorAlert = styled.div`
+  padding: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.error}15;
+  border: 1px solid ${({ theme }) => theme.colors.error};
+  border-radius: ${({ theme }) => theme.radius.md};
+  color: ${({ theme }) => theme.colors.error};
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  line-height: ${({ theme }) => theme.typography.lineHeight.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  display: flex;
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+`;
+
+const RoomList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+`;
+
+const RoomCard = styled.button`
+  width: 100%;
+  text-align: left;
+  padding: ${({ theme }) => theme.spacing.lg};
+  background-color: ${({ theme }) => theme.colors.surfaceLight};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.radius.lg};
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.background};
+    border-color: ${({ theme }) => theme.colors.accent};
+    box-shadow: ${({ theme }) => theme.shadows.md};
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
+const RoomCardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`;
+
+const RoomCardTitle = styled.h3`
+  margin: 0;
+  font-size: ${({ theme }) => theme.typography.fontSize.lg};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+  color: ${({ theme }) => theme.colors.text};
+  line-height: ${({ theme }) => theme.typography.lineHeight.lg};
+`;
+
+const RoomCardIcon = styled.span`
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.accent};
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const RoomCardMetadata = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+`;
+
+const RoomCardDetail = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  line-height: ${({ theme }) => theme.typography.lineHeight.sm};
+  font-family: 'Courier New', monospace;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: ${({ theme }) => `${theme.spacing['3xl']} ${theme.spacing.md}`};
+  color: ${({ theme }) => theme.colors.textSecondary};
+
+  svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+    opacity: 0.5;
+  }
+
+  h3 {
+    margin: 0 0 ${({ theme }) => theme.spacing.sm};
+    font-size: ${({ theme }) => theme.typography.fontSize.xl};
+    font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
+    color: ${({ theme }) => theme.colors.text};
+  }
+
+  p {
+    margin: 0;
+    font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  }
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.lg};
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
+`;
+
+const Label = styled.label`
+  font-size: ${({ theme }) => theme.typography.fontSize.sm};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.medium};
+  color: ${({ theme }) => theme.colors.text};
+  line-height: ${({ theme }) => theme.typography.lineHeight.sm};
+`;
+
+const Input = styled.input<{ $hasError: boolean; $mono?: boolean }>`
+  width: 100%;
+  background-color: ${({ theme }) => theme.colors.surfaceLight};
+  border: 1px solid ${({ theme, $hasError }) => $hasError ? theme.colors.error : theme.colors.border};
+  color: ${({ theme }) => theme.colors.text};
+  border-radius: ${({ theme }) => theme.radius.md};
+  padding: ${({ theme }) => `${theme.spacing.sm} ${theme.spacing.md}`};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
+  line-height: ${({ theme }) => theme.typography.lineHeight.base};
+  transition: border-color 150ms ease-in-out, box-shadow 150ms ease-in-out;
+  font-family: ${({ $mono }) => $mono ? '"Courier New", monospace' : 'inherit'};
+
+  &::placeholder {
+    color: ${({ theme }) => theme.colors.textTertiary};
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme, $hasError }) => $hasError ? theme.colors.error : theme.colors.accent};
+    box-shadow: 0 0 0 3px ${({ theme, $hasError }) => 
+      $hasError ? `${theme.colors.error}20` : `${theme.colors.accent}20`
+    };
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const InputMetadata = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.spacing.sm};
+  min-height: 20px;
+`;
+
+const HelperText = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.typography.fontSize.xs};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  line-height: ${({ theme }) => theme.typography.lineHeight.xs};
+`;
+
+const Button = styled.button`
+  width: 100%;
+  padding: ${({ theme }) => `${theme.spacing.md} ${theme.spacing.lg}`};
+  background-color: ${({ theme }) => theme.colors.accent};
+  color: white;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.md};
+  font-size: ${({ theme }) => theme.typography.fontSize.base};
+  font-weight: ${({ theme }) => theme.typography.fontWeight.bold};
+  line-height: ${({ theme }) => theme.typography.lineHeight.base};
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+
+  &:hover:not(:disabled) {
+    background-color: ${({ theme }) => theme.colors.accentDark};
+    box-shadow: ${({ theme }) => theme.shadows.md};
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ROOM_NAME_MAX = 100;
+const ROOM_NAME_MIN = 3;
+
 function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModalProps) {
   const [activeTab, setActiveTab] = useState<'join' | 'create'>('join');
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -26,12 +287,20 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
   // Create room form state
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomSchemaId, setNewRoomSchemaId] = useState(defaultSchemaId);
+  const [roomNameTouched, setRoomNameTouched] = useState(false);
+  const [schemaIdTouched, setSchemaIdTouched] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeTab === 'join') {
       fetchRooms();
     }
   }, [isOpen, activeTab]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNewRoomSchemaId(defaultSchemaId);
+    }
+  }, [isOpen, defaultSchemaId]);
 
   const fetchRooms = async () => {
     setLoading(true);
@@ -50,20 +319,42 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
     }
   };
 
+  // Validation
+  const trimmedRoomName = newRoomName.trim();
+  const isRoomNameValid = trimmedRoomName.length >= ROOM_NAME_MIN && trimmedRoomName.length <= ROOM_NAME_MAX;
+  const isSchemaIdValid = /^0x[a-fA-F0-9]{64}$/.test(newRoomSchemaId);
+
+  const getRoomNameValidationMessage = () => {
+    if (trimmedRoomName.length < ROOM_NAME_MIN) {
+      return `Room name must be at least ${ROOM_NAME_MIN} characters`;
+    }
+    if (trimmedRoomName.length > ROOM_NAME_MAX) {
+      return `Room name cannot exceed ${ROOM_NAME_MAX} characters`;
+    }
+    return 'Room name looks good!';
+  };
+
+  const getSchemaIdValidationMessage = () => {
+    if (!newRoomSchemaId.startsWith('0x')) {
+      return 'Schema ID must start with 0x';
+    }
+    if (newRoomSchemaId.length !== 66) {
+      return 'Schema ID must be exactly 66 characters (0x + 64 hex chars)';
+    }
+    if (!/^0x[a-fA-F0-9]{64}$/.test(newRoomSchemaId)) {
+      return 'Schema ID must contain only hexadecimal characters';
+    }
+    return 'Schema ID is valid!';
+  };
+
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
+    setRoomNameTouched(true);
+    setSchemaIdTouched(true);
     setLoading(true);
     setError(null);
 
-    // Validate inputs
-    if (!newRoomName.trim()) {
-      setError('Room name is required');
-      setLoading(false);
-      return;
-    }
-
-    if (!/^0x[a-fA-F0-9]{64}$/.test(newRoomSchemaId)) {
-      setError('Invalid schema ID format. Must be 0x followed by 64 hex characters.');
+    if (!isRoomNameValid || !isSchemaIdValid) {
       setLoading(false);
       return;
     }
@@ -75,7 +366,7 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          roomName: newRoomName.trim(),
+          roomName: trimmedRoomName,
           schemaId: newRoomSchemaId,
         }),
       });
@@ -99,6 +390,8 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
       // Reset form
       setNewRoomName('');
       setNewRoomSchemaId(defaultSchemaId);
+      setRoomNameTouched(false);
+      setSchemaIdTouched(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create room');
     } finally {
@@ -117,146 +410,189 @@ function RoomModal({ isOpen, onClose, onRoomSelect, defaultSchemaId }: RoomModal
     onClose();
   };
 
-  if (!isOpen) return null;
+  const formatAddress = (address?: string) => {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleModalClose = () => {
+    setError(null);
+    setNewRoomName('');
+    setNewRoomSchemaId(defaultSchemaId);
+    setRoomNameTouched(false);
+    setSchemaIdTouched(false);
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-surface rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-2xl font-bold text-text">Chat Rooms</h2>
-          <button
-            onClick={onClose}
-            className="text-text-secondary hover:text-text transition-colors"
-            aria-label="Close modal"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={handleModalClose}
+      title="Chat Rooms"
+      size="xl"
+      closeOnOverlayClick={false}
+    >
+      <TabContainer>
+        <Tab 
+          type="button"
+          $active={activeTab === 'join'} 
+          onClick={() => setActiveTab('join')}
+        >
+          Join Room
+        </Tab>
+        <Tab 
+          type="button"
+          $active={activeTab === 'create'} 
+          onClick={() => setActiveTab('create')}
+        >
+          Create Room
+        </Tab>
+      </TabContainer>
 
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          <button
-            onClick={() => setActiveTab('join')}
-            className={`flex-1 py-3 px-4 font-medium transition-colors ${
-              activeTab === 'join'
-                ? 'text-accent border-b-2 border-accent'
-                : 'text-text-secondary hover:text-text'
-            }`}
-          >
-            Join Room
-          </button>
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`flex-1 py-3 px-4 font-medium transition-colors ${
-              activeTab === 'create'
-                ? 'text-accent border-b-2 border-accent'
-                : 'text-text-secondary hover:text-text'
-            }`}
-          >
-            Create Room
-          </button>
-        </div>
+      {error && (
+        <ErrorAlert role="alert">
+          <svg fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <span>{error}</span>
+        </ErrorAlert>
+      )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-500 bg-opacity-20 border border-red-500 rounded-md text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          {activeTab === 'join' && (
-            <div>
-              {loading ? (
-                <div className="text-center py-8 text-text-secondary">Loading rooms...</div>
-              ) : rooms.length === 0 ? (
-                <div className="text-center py-8 text-text-secondary">
-                  <p>No rooms available yet.</p>
-                  <p className="mt-2">Create the first room to get started!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {rooms.map((room) => (
-                    <button
-                      key={room.roomName}
-                      onClick={() => handleJoinRoom(room)}
-                      className="w-full text-left p-4 bg-surface-light hover:bg-background border border-border rounded-lg transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-text">{room.roomName}</h3>
-                          <p className="text-xs text-text-secondary mt-1">
-                            Schema: {room.schemaId.slice(0, 10)}...{room.schemaId.slice(-8)}
-                          </p>
-                          <p className="text-xs text-text-secondary mt-1">
-                            Updated: {new Date(room.updatedAt).toLocaleString()}
-                          </p>
-                        </div>
-                        <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'create' && (
-            <form onSubmit={handleCreateRoom} className="space-y-4">
-              <div>
-                <label htmlFor="roomName" className="block text-sm font-medium text-text mb-2">
-                  Room Name
-                </label>
-                <input
-                  id="roomName"
-                  type="text"
-                  value={newRoomName}
-                  onChange={(e) => setNewRoomName(e.target.value)}
-                  placeholder="Enter room name..."
-                  maxLength={100}
-                  className="w-full bg-surface-light border border-border text-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="schemaId" className="block text-sm font-medium text-text mb-2">
-                  Schema ID
-                </label>
-                <input
-                  id="schemaId"
-                  type="text"
-                  value={newRoomSchemaId}
-                  onChange={(e) => setNewRoomSchemaId(e.target.value)}
-                  placeholder="0x..."
-                  pattern="^0x[a-fA-F0-9]{64}$"
-                  className="w-full bg-surface-light border border-border text-text rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
-                  required
-                />
-                <p className="mt-1 text-xs text-text-secondary">
-                  32-byte hex string (0x followed by 64 hex characters)
-                </p>
-              </div>
-
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-accent hover:bg-accent-dark text-white font-bold py-3 px-4 rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+      {activeTab === 'join' && (
+        <>
+          {loading ? (
+            <SkeletonLoader count={3} height="100px" />
+          ) : rooms.length === 0 ? (
+            <EmptyState>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <h3>No rooms available</h3>
+              <p>Be the first to create a chat room!</p>
+            </EmptyState>
+          ) : (
+            <RoomList>
+              {rooms.map((room) => (
+                <RoomCard
+                  key={room.roomName}
+                  type="button"
+                  onClick={() => handleJoinRoom(room)}
                 >
-                  {loading ? 'Creating Room...' : 'Create Room'}
-                </button>
-              </div>
-            </form>
+                  <RoomCardHeader>
+                    <RoomCardTitle>{room.roomName}</RoomCardTitle>
+                    <RoomCardIcon>
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </RoomCardIcon>
+                  </RoomCardHeader>
+                  <RoomCardDetail>
+                    Schema: {room.schemaId.slice(0, 10)}...{room.schemaId.slice(-8)}
+                  </RoomCardDetail>
+                  <RoomCardMetadata>
+                    <Badge variant="default">
+                      Owner: {formatAddress(room.ownerAddress)}
+                    </Badge>
+                    <Badge variant="primary">
+                      Updated {formatDate(room.updatedAt)}
+                    </Badge>
+                  </RoomCardMetadata>
+                </RoomCard>
+              ))}
+            </RoomList>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+
+      {activeTab === 'create' && (
+        <Form onSubmit={handleCreateRoom}>
+          <FormGroup>
+            <Label htmlFor="roomName">Room Name</Label>
+            <Input
+              id="roomName"
+              type="text"
+              value={newRoomName}
+              onChange={(e) => setNewRoomName(e.target.value)}
+              onBlur={() => setRoomNameTouched(true)}
+              placeholder="Enter room name..."
+              maxLength={ROOM_NAME_MAX}
+              $hasError={roomNameTouched && !isRoomNameValid && newRoomName.length > 0}
+              aria-describedby="room-name-validation"
+              aria-invalid={roomNameTouched && !isRoomNameValid}
+              required
+            />
+            <InputMetadata>
+              <div style={{ flex: 1 }}>
+                <ValidationFeedback
+                  isValid={isRoomNameValid}
+                  message={getRoomNameValidationMessage()}
+                  show={roomNameTouched && newRoomName.length > 0}
+                />
+                {!(roomNameTouched && newRoomName.length > 0) && (
+                  <HelperText>
+                    Choose a unique name for your chat room ({ROOM_NAME_MIN}-{ROOM_NAME_MAX} characters)
+                  </HelperText>
+                )}
+              </div>
+              <CharacterCounter current={newRoomName.length} max={ROOM_NAME_MAX} />
+            </InputMetadata>
+          </FormGroup>
+
+          <FormGroup>
+            <Label htmlFor="schemaId">Schema ID</Label>
+            <Input
+              id="schemaId"
+              type="text"
+              value={newRoomSchemaId}
+              onChange={(e) => setNewRoomSchemaId(e.target.value)}
+              onBlur={() => setSchemaIdTouched(true)}
+              placeholder="0x..."
+              $hasError={schemaIdTouched && !isSchemaIdValid}
+              $mono
+              aria-describedby="schema-id-validation"
+              aria-invalid={schemaIdTouched && !isSchemaIdValid}
+              required
+            />
+            <InputMetadata>
+              <div style={{ flex: 1 }}>
+                <ValidationFeedback
+                  isValid={isSchemaIdValid}
+                  message={getSchemaIdValidationMessage()}
+                  show={schemaIdTouched}
+                />
+                {!schemaIdTouched && (
+                  <HelperText>
+                    32-byte hex string (0x followed by 64 hex characters)
+                  </HelperText>
+                )}
+              </div>
+            </InputMetadata>
+          </FormGroup>
+
+          <Button 
+            type="submit" 
+            disabled={loading || (roomNameTouched && !isRoomNameValid) || (schemaIdTouched && !isSchemaIdValid)}
+          >
+            {loading ? 'Creating Room...' : 'Create Room'}
+          </Button>
+        </Form>
+      )}
+    </AccessibleModal>
   );
 }
 
