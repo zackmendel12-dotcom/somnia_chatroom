@@ -38,7 +38,7 @@ const IconWrapper = styled.div`
   opacity: 0.6;
 `;
 
-const Title = styled.h3`
+const Title = styled.h2`
   font-size: ${({ theme }) => theme.typography.fontSize.xl};
   font-weight: ${({ theme }) => theme.typography.fontWeight.semibold};
   color: ${({ theme }) => theme.colors.text};
@@ -54,6 +54,7 @@ const Description = styled.p`
 
 const ActionButton = styled.button`
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.lg};
+  min-height: 44px;
   background: ${({ theme }) => theme.colors.accent};
   color: white;
   border: none;
@@ -67,9 +68,15 @@ const ActionButton = styled.button`
     background: ${({ theme }) => theme.colors.accentDark};
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, ${({ theme }) => theme.colors.accent} 30%, transparent);
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.accent};
+    outline-offset: 2px;
+  }
+
+  @media (prefers-contrast: more) {
+    &:focus-visible {
+      outline-width: 3px;
+    }
   }
 `;
 
