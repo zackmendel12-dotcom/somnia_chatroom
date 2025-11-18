@@ -19,15 +19,14 @@ const Shell = styled(motion.div)`
     color-mix(in srgb, ${({ theme }) => theme.colors.surface} 50%, ${({ theme }) => theme.colors.background}) 100%
   );
   position: relative;
-  overflow: hidden;
 
   &::before {
     content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: radial-gradient(
       circle at 30% 20%,
       color-mix(in srgb, ${({ theme }) => theme.colors.accent} 5%, transparent) 0%,

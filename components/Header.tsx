@@ -13,7 +13,7 @@ const Header: React.FC<HeaderProps> = ({ currentRoom, displayName, onRoomClick, 
   const { isConnected, address } = useAccount();
 
   return (
-    <header role="banner" className="flex items-center justify-between p-4 xs:p-3 sm:p-4 bg-surface border-b border-border shadow-md">
+    <header role="banner" className="sticky top-0 z-50 flex items-center justify-between p-4 xs:p-3 sm:p-4 bg-surface border-b border-border shadow-md">
       <div className="flex items-center space-x-2">
         <div 
           className={`w-3 h-3 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-gray-500'}`}
