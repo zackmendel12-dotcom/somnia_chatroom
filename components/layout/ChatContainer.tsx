@@ -3,6 +3,7 @@ import styled from 'styled-components';
 
 interface ChatContainerProps {
   children: React.ReactNode;
+  id?: string;
 }
 
 const Container = styled.div`
@@ -14,7 +15,6 @@ const Container = styled.div`
   margin: 0 auto;
   padding: 0;
   gap: 0;
-  overflow: hidden;
 
   @media (min-width: 768px) {
     padding: ${({ theme }) => theme.spacing.md};
@@ -85,9 +85,9 @@ const ComposerPanel = styled.div`
   }
 `;
 
-function ChatContainer({ children }: ChatContainerProps) {
+function ChatContainer({ children, id }: ChatContainerProps) {
   return (
-    <Container>
+    <Container id={id}>
       <InnerContainer>{children}</InnerContainer>
     </Container>
   );

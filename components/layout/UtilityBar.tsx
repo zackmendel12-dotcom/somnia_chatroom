@@ -10,6 +10,9 @@ interface UtilityBarProps {
 }
 
 const Bar = styled.div`
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;

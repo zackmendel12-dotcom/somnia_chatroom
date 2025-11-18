@@ -128,4 +128,12 @@ describe('Header Accessibility', () => {
     const roomButton = screen.getByRole('button', { name: /current room/i });
     expect(roomButton).toHaveClass('focus-visible:outline');
   });
+
+  it('should have sticky positioning for visibility', () => {
+    render(<Header />);
+    const header = screen.getByRole('banner');
+    expect(header).toHaveClass('sticky');
+    expect(header).toHaveClass('top-0');
+    expect(header).toHaveClass('z-50');
+  });
 });
