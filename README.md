@@ -176,6 +176,26 @@ curl http://localhost:4000/api/rooms/my-room
 - **Storage**: localStorage (client-side), JSON file (server-side)
 - **Testing**: Vitest, Testing Library, jest-axe (accessibility testing)
 
+## Design System
+
+This application is built with a comprehensive, token-based design system that ensures consistency, accessibility, and maintainability. The design system includes:
+
+- **Visual Foundations**: Color palette, typography scale, spacing, shadows, and z-index
+- **Theme System**: Light/dark mode with `ThemeProvider` and `useThemeMode()` hook
+- **Motion System**: Animation tokens, easing functions, and reduced-motion support
+- **Responsive Design**: Fluid typography and breakpoints from 320px to 1536px+
+- **Accessibility**: WCAG 2.1 AA compliant patterns and conventions
+- **Component Inventory**: Comprehensive documentation of all reusable components
+
+All design tokens are defined as CSS custom properties in `src/styles/tailwind.css` and are available for use in both Tailwind classes and styled-components.
+
+**Setup:**
+- Tailwind CSS v4 with PostCSS plugin (`@tailwindcss/postcss`)
+- Inter Variable font from `@fontsource-variable/inter`
+- Full TypeScript support with exported types and interfaces
+
+For complete documentation including usage examples and code snippets, see **[docs/design-system.md](./docs/design-system.md)**.
+
 ## Accessibility
 
 This application is built with **WCAG 2.1 Level AA** compliance in mind. For detailed information about accessibility features, testing workflows, and best practices, see [ACCESSIBILITY.md](./ACCESSIBILITY.md).
@@ -232,5 +252,6 @@ MIT License - see LICENSE file for details
 For issues and questions:
 - Check the [ENV_SETUP.md](./ENV_SETUP.md) for environment configuration
 - Review the [ACCESSIBILITY.md](./ACCESSIBILITY.md) for accessibility features and testing
+- Review the [docs/design-system.md](./docs/design-system.md) for design tokens and component usage
 - Review the [REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md) for technical details
 - Open an issue on GitHub for bugs and feature requests
