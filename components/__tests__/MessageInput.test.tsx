@@ -33,10 +33,10 @@ describe('MessageInput', () => {
     expect(attachButton).toBeDisabled();
   });
 
-  it('renders emoji button (disabled)', () => {
+  it('renders emoji button (enabled)', () => {
     render(<MessageInput onSendMessage={mockOnSendMessage} isLoading={false} />);
-    const emojiButton = screen.getByLabelText('Add emoji (coming soon)');
-    expect(emojiButton).toBeDisabled();
+    const emojiButton = screen.getByLabelText('Add emoji');
+    expect(emojiButton).not.toBeDisabled();
   });
 
   it('allows typing in the textarea', async () => {

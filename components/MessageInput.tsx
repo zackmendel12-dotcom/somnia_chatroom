@@ -3,6 +3,7 @@ import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 import SendIcon from './icons/SendIcon';
 import SpinnerIcon from './icons/SpinnerIcon';
+import EmojiPicker from './EmojiPicker';
 import useReducedMotion from '../src/hooks/useReducedMotion';
 import { motionTheme } from '../src/config/motionTheme';
 
@@ -27,6 +28,7 @@ const shimmer = keyframes`
 `;
 
 const ComposerForm = styled.form`
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: ${props => props.theme.spacing.md};
@@ -145,16 +147,16 @@ const IconButton = styled.button<{ $isActive?: boolean }>`
   width: 2rem;
   height: 2rem;
   border: none;
-  background: transparent;
-  color: ${props => props.theme.colors.textSecondary};
+  background: ${props => props.$isActive ? props.theme.colors.surfaceLight : 'transparent'};
+  color: ${props => props.$isActive ? props.theme.colors.accent : props.theme.colors.textSecondary};
   border-radius: ${props => props.theme.radius.md};
   cursor: pointer;
   transition: all 0.2s ease;
-  opacity: 0.5;
+  opacity: ${props => props.$isActive ? 1 : 0.5};
   
   &:hover:not(:disabled) {
     background-color: ${props => props.theme.colors.surfaceLight};
-    color: ${props => props.theme.colors.text};
+    color: ${props => props.$isActive ? props.theme.colors.accent : props.theme.colors.text};
     opacity: 1;
   }
   
@@ -228,7 +230,9 @@ const KeyboardHint = styled.span`
 function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
   const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -246,6 +250,24 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+    }
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    if (textareaRef.current) {
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      const newText = text.substring(0, start) + emoji + text.substring(end);
+      setText(newText);
+      
+      // Restore focus and cursor position after emoji insertion
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          const newCursorPosition = start + emoji.length;
+          textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+        }
+      }, 0);
     }
   };
 
@@ -296,10 +318,14 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
             </svg>
           </IconButton>
           <IconButton
+            ref={emojiButtonRef}
             type="button"
-            disabled
-            title="Add emoji (coming soon)"
-            aria-label="Add emoji (coming soon)"
+            onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
+            title={isEmojiPickerOpen ? "Close emoji picker" : "Add emoji"}
+            aria-label={isEmojiPickerOpen ? "Close emoji picker" : "Add emoji"}
+            aria-expanded={isEmojiPickerOpen}
+            aria-haspopup="dialog"
+            $isActive={isEmojiPickerOpen}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -321,6 +347,12 @@ function MessageInput({ onSendMessage, isLoading }: MessageInputProps) {
           Enter to send • Shift+Enter for new line
         </KeyboardHint>
       </InputWrapper>
+      <EmojiPicker
+        isOpen={isEmojiPickerOpen}
+        onEmojiSelect={handleEmojiSelect}
+        onClose={() => setIsEmojiPickerOpen(false)}
+        triggerRef={emojiButtonRef}
+      />
       <SendButton
         type="submit"
         disabled={isLoading || !text.trim()}
