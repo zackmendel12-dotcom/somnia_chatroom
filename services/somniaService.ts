@@ -4,6 +4,27 @@ import { Message } from '../types';
 
 type MessageCallback = (messages: Message[]) => void;
 
+// ============================================================================
+// SOMNIA SERVICE - HTTP CLIENT FOR DATA STREAMS
+// ============================================================================
+// This service provides a simple HTTP client interface for interacting with
+// Somnia Data Streams (SDS) via the backend API.
+//
+// IMPORTANT: This is a frontend-only service. It does NOT import or use
+// @somnia-chain/streams directly. All blockchain operations are handled
+// server-side for security (private key management).
+//
+// The frontend communicates with the backend via REST API endpoints:
+// - POST /api/streams/register-schema - Register a schema on-chain
+// - POST /api/streams/publish-message - Publish a message
+// - GET /api/streams/messages/:roomId - Retrieve messages
+//
+// This architecture ensures:
+// 1. Private keys never leave the server
+// 2. Browser clients don't need to handle blockchain complexity
+// 3. Server can implement rate limiting, validation, and caching
+// ============================================================================
+
 export class SomniaService {
   private baseUrl: string;
   private pollingInterval: number | null = null;
