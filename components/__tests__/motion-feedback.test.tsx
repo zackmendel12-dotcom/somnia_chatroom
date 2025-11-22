@@ -86,6 +86,7 @@ describe('Motion Feedback - Reduced Motion Support', () => {
       senderName: 'Test User',
       senderAddress: '0x123',
       timestamp: Date.now(),
+      roomId: 'test-room',
     };
 
     it('renders with slide/fade animation when motion is enabled', () => {
@@ -264,6 +265,7 @@ describe('Motion Feedback - Reduced Motion Support', () => {
         senderName: 'Test',
         senderAddress: '0x123',
         timestamp: Date.now(),
+        roomId: 'test-room',
       };
 
       const { container } = renderWithTheme(

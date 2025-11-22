@@ -127,7 +127,19 @@ function sanitizeString(str: unknown): string {
   return str.trim().slice(0, 1000); // Limit length
 }
 
-// Somnia SDK initialization
+// ============================================================================
+// SOMNIA DATA STREAMS (SDS) INITIALIZATION
+// ============================================================================
+// This section initializes the Somnia Data Streams SDK on the server side.
+// The SDK is used to:
+// - Register schemas on-chain for structured data storage
+// - Publish messages to on-chain data streams
+// - Query and retrieve data from the blockchain
+//
+// IMPORTANT: All SDS operations happen server-side for security.
+// The frontend communicates with this backend via REST API.
+// ============================================================================
+
 let somniaSDK: SDK | null = null;
 let somniaPublicClient: PublicClient | null = null;
 let somniaWalletClient: WalletClient | null = null;
@@ -322,7 +334,20 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
-// POST /api/streams/register-schema - Register a schema on-chain
+// ============================================================================
+// SDS ENDPOINT: SCHEMA REGISTRATION
+// ============================================================================
+// This endpoint registers a data schema on the Somnia blockchain.
+// Schemas define the structure of data that will be stored in SDS.
+//
+// Process:
+// 1. Check if schema is already registered (saves gas)
+// 2. If not, call sdk.streams.registerDataSchemas() with schema definition
+// 3. Wait for transaction confirmation
+// 4. Return transaction hash to client
+//
+// Schema format: "uint64 timestamp,bytes32 roomId,string content,string senderName,address sender"
+// ============================================================================
 app.post('/api/streams/register-schema', async (req, res) => {
   try {
     // Check if Somnia SDK is initialized
@@ -355,7 +380,8 @@ app.post('/api/streams/register-schema', async (req, res) => {
 
     const schemaIdHex = schemaId as Hex;
 
-    // Check if schema is already registered
+    // SDS OPERATION: Check if schema is already registered
+    // This avoids unnecessary gas costs by not re-registering schemas
     const isRegistered = await somniaSDK.streams.isDataSchemaRegistered(schemaIdHex);
     
     if (isRegistered) {
@@ -373,7 +399,13 @@ app.post('/api/streams/register-schema', async (req, res) => {
 
     console.log(`Registering schema ${schemaId}...`);
     
-    // Register schema
+    // SDS OPERATION: Register the schema on-chain
+    // This creates a reusable schema that defines the structure of chat messages
+    // Parameters:
+    // - id: Unique identifier for this schema (32-byte hex)
+    // - schema: The schema definition string (e.g., "uint64 timestamp,string content,...")
+    // - parentSchemaId: Parent schema if inheriting (zeroBytes32 for root schemas)
+    // - waitForReceipt: true to wait for transaction confirmation
     const txHash = await somniaSDK.streams.registerDataSchemas(
       [{ id: schemaIdHex, schema: chatSchema, parentSchemaId: zeroBytes32 as Hex }],
       true
@@ -385,7 +417,7 @@ app.post('/api/streams/register-schema', async (req, res) => {
       });
     }
 
-    // Wait for transaction receipt
+    // Wait for transaction confirmation before notifying client
     await somniaPublicClient.waitForTransactionReceipt({ hash: txHash as Hex });
     
     console.log(`Schema registered successfully. Transaction: ${txHash}`);
@@ -400,7 +432,21 @@ app.post('/api/streams/register-schema', async (req, res) => {
   }
 });
 
-// POST /api/streams/publish-message - Publish a message on-chain
+// ============================================================================
+// SDS ENDPOINT: MESSAGE PUBLISHING
+// ============================================================================
+// This endpoint publishes a chat message to Somnia Data Streams.
+//
+// Process:
+// 1. Validate message data (text, sender info, room ID, schema ID)
+// 2. Encode message data according to the registered schema using SchemaEncoder
+// 3. Generate unique data ID using keccak256 hash
+// 4. Publish to SDS using sdk.streams.set()
+// 5. Wait for transaction confirmation
+// 6. Return transaction hash to client
+//
+// The encoded data is stored immutably on-chain and can be queried later.
+// ============================================================================
 app.post('/api/streams/publish-message', async (req, res) => {
   try {
     // Check if Somnia SDK is initialized
@@ -447,7 +493,9 @@ app.post('/api/streams/publish-message', async (req, res) => {
     const schemaIdHex = schemaId as Hex;
     const senderAddressHex = senderAddress as Address;
 
-    // Encode message data
+    // SDS OPERATION: Encode message data according to schema
+    // SchemaEncoder ensures data matches the registered schema format
+    // Each field must match the type and order defined in the schema
     const payload: Hex = somniaEncoder.encodeData([
       { name: 'timestamp', value: timestamp.toString(), type: 'uint64' },
       { name: 'roomId', value: toHex(roomId, { size: 32 }), type: 'bytes32' },
@@ -456,13 +504,19 @@ app.post('/api/streams/publish-message', async (req, res) => {
       { name: 'sender', value: senderAddressHex, type: 'address' },
     ]);
 
-    // Create unique data ID
+    // Generate a unique identifier for this data entry
+    // This prevents duplicate messages and allows for future updates
     const uniqueString = `${roomId}-${senderName}-${timestamp}`;
     const dataId = keccak256(toHex(uniqueString));
 
     console.log(`Publishing message to room ${roomId} from ${senderName}...`);
 
-    // Publish message
+    // SDS OPERATION: Publish encoded data to the blockchain
+    // sdk.streams.set() writes data to Somnia Data Streams
+    // Parameters:
+    // - id: Unique identifier for this data entry
+    // - schemaId: The schema this data conforms to
+    // - data: The encoded payload (Hex string)
     const txHash = await somniaSDK.streams.set([{ id: dataId, schemaId: schemaIdHex, data: payload }]);
 
     if (!txHash) {
@@ -471,7 +525,7 @@ app.post('/api/streams/publish-message', async (req, res) => {
       });
     }
 
-    // Wait for transaction confirmation
+    // Wait for blockchain confirmation before responding to client
     await somniaPublicClient.waitForTransactionReceipt({ hash: txHash as Hex });
     
     console.log(`Message published successfully. Transaction: ${txHash}`);
@@ -489,7 +543,21 @@ app.post('/api/streams/publish-message', async (req, res) => {
   }
 });
 
-// GET /api/streams/messages/:roomId - Get messages for a room
+// ============================================================================
+// SDS ENDPOINT: MESSAGE RETRIEVAL
+// ============================================================================
+// This endpoint queries Somnia Data Streams to retrieve chat messages.
+//
+// Process:
+// 1. Validate room ID and schema ID
+// 2. Query all data published by the server wallet for the given schema
+// 3. Decode the data using SchemaEncoder
+// 4. Filter messages by room ID (extracted from decoded data)
+// 5. Sort by timestamp and return to client
+//
+// Note: This queries ALL data for the schema, then filters client-side.
+// In production, you might want to implement more efficient filtering.
+// ============================================================================
 app.get('/api/streams/messages/:roomId', async (req, res) => {
   try {
     // Check if Somnia SDK is initialized
@@ -520,9 +588,12 @@ app.get('/api/streams/messages/:roomId', async (req, res) => {
     console.log(`Fetching messages for room ${roomId} with schema ${schemaId}...`);
 
     // Encode roomId the same way it was encoded when publishing
+    // This is crucial for matching - encoding must be consistent
     const roomIdHex = toHex(roomId, { size: 32 });
 
-    // Fetch all data for the schema from the server's wallet
+    // SDS OPERATION: Retrieve all data published by this server for the given schema
+    // sdk.streams.getAllPublisherDataForSchema() returns all data entries
+    // that match the schema ID and were published by the server wallet
     const allData = await somniaSDK.streams.getAllPublisherDataForSchema(
       schemaIdHex, 
       serverWalletAddress
@@ -532,7 +603,8 @@ app.get('/api/streams/messages/:roomId', async (req, res) => {
       return res.json([]);
     }
 
-    // Parse and filter messages
+    // Parse and filter messages by room ID
+    // Since all rooms use the same schema, we need to filter by the roomId field
     const messages: any[] = [];
     const val = (field: any) => field?.value?.value ?? field?.value ?? '';
 
